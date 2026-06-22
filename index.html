@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1565C0">
+<title>EMTUSA Gijon</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden}
+body{font-family:-apple-system,sans-serif}
+#map{width:100%;height:100%}
+#status{position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:1000;background:rgba(0,0,0,.8);color:#fff;padding:8px 16px;border-radius:20px;font-size:12px;display:none;backdrop-filter:blur(6px);max-width:90%}
+#pbar{position:fixed;top:42px;left:50%;transform:translateX(-50%);z-index:1000;width:200px;height:4px;background:rgba(255,255,255,.15);border-radius:2px;display:none;backdrop-filter:blur(6px)}
+#pbar>div{height:100%;background:#64B5F6;border-radius:2px;transition:width .2s}
+#legend{position:fixed;bottom:10px;left:10px;z-index:999;background:rgba(0,0,0,.85);color:#fff;padding:10px 14px;border-radius:12px;font-size:11px;max-height:45vh;overflow-y:auto;max-width:220px;backdrop-filter:blur(10px);transition:transform .3s}
+#legend.hidden-by-dash{transform:translateY(-100vh)}
+#legend h3{font-size:13px;margin-bottom:6px;color:#64B5F6}
+#btn-toggle{width:100%;padding:6px;border:1px solid rgba(255,255,255,.2);border-radius:6px;background:transparent;color:#fff;font-size:10px;cursor:pointer;margin-bottom:8px}
+#btn-toggle:active{background:rgba(255,255,255,.1)}
+.leg-line{display:flex;align-items:center;gap:6px;padding:4px 0;cursor:pointer;transition:opacity .2s}
+.leg-line.off{opacity:.3}
+.leg-dot{width:24px;height:24px;border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff}
+.leg-name{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#info{position:fixed;bottom:10px;right:10px;z-index:1000;background:rgba(0,0,0,.85);color:#fff;padding:8px 12px;border-radius:10px;font-size:11px;backdrop-filter:blur(10px)}
+.bus-icon{display:flex;align-items:center;gap:4px;white-space:nowrap}
+.bus-num{border:2px solid #fff;border-radius:50%;width:22px;height:22px;text-align:center;line-height:18px;font-size:9px;font-weight:800;color:#fff;box-shadow:0 2px 6px rgba(0,0,0,.4);flex-shrink:0}
+.bus-dest{background:rgba(0,0,0,.75);color:#fff;font-size:9px;font-weight:600;padding:2px 5px;border-radius:4px;max-width:100px;overflow:hidden;text-overflow:ellipsis;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.leaflet-popup-content{font-size:13px;line-height:1.5}
+.leaflet-popup-content b{color:#1565C0}
+#search-panel{position:fixed;top:50px;left:10px;z-index:1000;max-width:320px;width:calc(100% - 20px);backdrop-filter:blur(10px)}
+#search-bar{display:flex;gap:4px}
+#search-bar input{flex:1;padding:10px 12px;border:none;border-radius:10px;background:rgba(0,0,0,.8);color:#fff;font-size:14px;outline:none}
+#search-bar input::placeholder{color:rgba(255,255,255,.5)}
+#search-bar button{width:40px;border:none;border-radius:10px;background:rgba(0,0,0,.8);color:#64B5F6;cursor:pointer;font-size:18px}
+#search-bar button:active{background:rgba(0,0,0,.9)}
+#sug-list{background:rgba(0,0,0,.9);border-radius:0 0 10px 10px;max-height:200px;overflow-y:auto;display:none}
+#sug-list div{padding:10px 12px;font-size:12px;color:#fff;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.1)}
+#sug-list div:hover{background:rgba(255,255,255,.1)}
+#sug-list div small{color:rgba(255,255,255,.5)}
+#dashboard{position:fixed;bottom:0;left:0;right:0;z-index:1000;background:rgba(0,0,0,.92);color:#fff;max-height:50vh;overflow-y:auto;border-radius:16px 16px 0 0;padding:16px;display:none;backdrop-filter:blur(10px)}
+#dashboard .dash-title{font-size:14px;font-weight:700;color:#64B5F6;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+#dashboard .dash-close{cursor:pointer;font-size:18px;color:#aaa}
+.stop-card{background:rgba(255,255,255,.08);border-radius:10px;padding:12px;margin-bottom:8px}
+.stop-name{font-size:13px;font-weight:700;margin-bottom:6px}
+.stop-dist{font-size:11px;color:#64B5F6;margin-bottom:6px}
+.arrival{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;border-bottom:1px solid rgba(255,255,255,.06)}
+.arrival:last-child{border:none}
+.arr-line{width:24px;height:24px;border-radius:6px;text-align:center;line-height:24px;font-size:10px;font-weight:800;color:#fff;flex-shrink:0}
+.arr-dest{flex:1;color:#ccc;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.arr-time{font-weight:700;color:#fff;font-size:14px;white-space:nowrap}
+#mode-bar{position:fixed;top:10px;right:60px;z-index:1000;display:flex;gap:4px;backdrop-filter:blur(10px)}
+.mode-btn{padding:8px 14px;border:none;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;background:rgba(0,0,0,.7);color:#fff;transition:all .15s}
+.mode-btn.on{background:#1565C0;color:#fff}
+.stop-label{background:rgba(21,101,192,.9)!important;border:none!important;color:#fff!important;font-size:10px!important;font-weight:600!important;padding:2px 6px!important;border-radius:4px!important}
+.stop-label::before{border-right-color:rgba(21,101,192,.9)!important}
+.bici-icon{width:24px;height:24px;border-radius:50%;text-align:center;line-height:24px;font-size:11px;font-weight:800;color:#fff;box-shadow:0 2px 4px rgba(0,0,0,.3);border:2px solid #fff}
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div id="search-panel">
+  <div id="search-bar">
+    <input id="inp-search" type="text" placeholder="Buscar direccion en Gijon..." autocomplete="off">
+    <button id="btn-gps" onclick="gpsSearch()" title="Mi ubicacion">&#9737;</button>
+  </div>
+  <div id="sug-list"></div>
+</div>
+<div id="dashboard">
+  <div class="dash-title"><span>Paradas cercanas</span><span class="dash-close" onclick="closeDash()">✕</span></div>
+  <div id="dash-stops"></div>
+</div>
+<div id="mode-bar">
+  <button class="mode-btn on" id="mode-bus" onclick="setMode('bus')">EMTUSA</button>
+  <button class="mode-btn" id="mode-bici" onclick="setMode('bici')">Gijon Bici</button>
+</div>
+<div id="status"></div>
+<div id="pbar"><div id="pbar-fill"></div></div>
+<div id="legend"><h3>Lineas EMTUSA</h3><button id="btn-toggle" onclick="toggleAll()">Ocultar todas</button><div id="leg-list"></div></div>
+<div id="info"></div>
+
+<script>
+if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
+const API="https://emtusasiri.pub.gijon.es/emtusasiri";
+const OSRM="https://router.project-osrm.org/route/v1/driving";
+const ALLOWED_IDS=new Set([1,2,4,10,15,18,20,41,42,43,44,45,46]);
+const LINE_TRAYECTOS={1:[1,2],2:[14,13],4:[9,10,18,19],10:[5,6],15:[11,12],18:[13,14],20:[5,6],41:[1,2],42:[1,2],43:[1,2],44:[4,5],45:[1,2],46:[2,4]};
+let TOKEN=null,lineas={},routeLayers={},busLayer=null,hiddenLines=new Set(),loadedRoutes=new Set();
+
+const map=L.map("map",{zoomControl:false}).setView([43.5322,-5.6611],13);
+L.control.zoom({position:"topright"}).addTo(map);
+L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",{attribution:'&copy; CARTO',maxZoom:19}).addTo(map);
+
+function showStatus(m){const e=document.getElementById("status");e.textContent=m;e.style.display=m?"block":"none"}
+function showProg(pct){const b=document.getElementById("pbar");b.style.display=pct>=0?"block":"none";document.getElementById("pbar-fill").style.width=Math.min(pct,100)+"%"}
+function hideProg(){document.getElementById("pbar").style.display="none"}
+
+async function auth(){
+  const r=await fetch(`${API}/login?grant_type=password&username=info@vitesia.com&password=vitesia130`,{
+    method:"POST",headers:{"Authorization":"Basic YXBpOmFwaQ==","Accept":"application/json"}});
+  TOKEN=(await r.json()).access_token;
+}
+
+async function apiFetch(p){
+  const r=await fetch(`${API}/${p}`,{headers:{"Authorization":`Bearer ${TOKEN}`}});
+  if(!r.ok)throw new Error(r.status);return r.json();
+}
+
+function hc(h){return h?"#"+h.replace(/^#/,""):"#888"}
+
+async function loadLineas(){
+  const d=await apiFetch("lineas/lineas");
+  const raw=d.lineas||d;
+  Object.keys(raw).forEach(k=>{
+    const l=raw[k];if(!l||!l.codigo)return;
+    const id=l.idlinea||parseInt(k);
+    if(!ALLOWED_IDS.has(id))return;
+    lineas[id]={id,codigo:l.codigo,color:hc(l.colorhex),desc:l.descripcion?.trim()};
+  });
+}
+
+async function getRouteGeometry(stops){
+  if(stops.length<2)return stops;
+  const coords=stops.map(s=>s[1]+","+s[0]).join(";");
+  try{
+    const r=await fetch(`${OSRM}/${coords}?overview=full&geometries=geojson&steps=false`);
+    if(!r.ok)return stops;
+    const d=await r.json();
+    if(d.code==="Ok"&&d.routes?.[0]?.geometry?.coordinates){
+      return d.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]);
+    }
+  }catch{}
+  return stops;
+}
+
+async function loadAllTrayectos(idlinea){
+  const tids=LINE_TRAYECTOS[idlinea]||[1,2];
+  const results=await Promise.all(tids.map(async tid=>{
+    try{
+      const d=await apiFetch(`trayectos/trayectos/${idlinea}/${tid}`);
+      if(d.paradas&&d.paradas.length>2)
+        return{stops:d.paradas.map(p=>[parseFloat(p.latitud),parseFloat(p.longitud)]),desc:d.descripcion,destino:d.destino};
+    }catch{}
+    return null;
+  }));
+  return results.filter(Boolean);
+}
+
+async function loadRouteForLine(id,line){
+  if(loadedRoutes.has(id))return;
+  loadedRoutes.add(id);
+  showStatus(`Cargando L${line.codigo}...`);
+  showProg(5);
+  const trayectos=await loadAllTrayectos(id);
+  if(!trayectos.length){showStatus("");hideProg();return}
+  showProg(20);
+  showStatus(`L${line.codigo}: calculando rutas...`);
+  showProg(30);
+  const geometries=await Promise.all(trayectos.map(t=>getRouteGeometry(t.stops)));
+  showProg(85);
+  const group=L.layerGroup().addTo(map);
+  const drawnStops=new Set();
+  trayectos.forEach((tray,i)=>{
+    L.polyline(geometries[i],{color:line.color,weight:4,opacity:0.7}).addTo(group).bindPopup(`<b>L${line.codigo}</b> → ${tray.destino||""}<br><small>${tray.desc||""}</small>`);
+    tray.stops.forEach(s=>{
+      const key=s[0].toFixed(5)+","+s[1].toFixed(5);
+      if(!drawnStops.has(key)){drawnStops.add(key);L.circleMarker(s,{radius:3,fillColor:"#fff",color:line.color,weight:2,fillOpacity:1}).addTo(group)}
+    });
+  });
+  routeLayers[id]=group;
+  showProg(100);
+  showStatus("");
+  setTimeout(hideProg,400);
+}
+
+function buildLegend(){
+  const legList=document.getElementById("leg-list");
+  const entries=Object.entries(lineas).sort((a,b)=>{
+    const na=parseInt(a[1].codigo)||99,nb=parseInt(b[1].codigo)||99;return na-nb;
+  });
+  for(const[id,line]of entries){
+    hiddenLines.add(parseInt(id));
+    const div=document.createElement("div");
+    div.className="leg-line off";
+    div.dataset.lineId=id;
+    div.innerHTML=`<div class="leg-dot" style="background:${line.color}">${line.codigo}</div><span class="leg-name">${line.desc?.split("-").slice(0,2).join("-").trim()||""}</span>`;
+    div.addEventListener("click",async()=>{
+      const loaded=loadedRoutes.has(id);
+      if(!loaded){
+        await loadRouteForLine(id,line);
+        if(!routeLayers[id])return;
+        hiddenLines.delete(parseInt(id));
+        div.classList.remove("off");
+      }else{
+        const vis=map.hasLayer(routeLayers[id]);
+        if(vis){map.removeLayer(routeLayers[id]);div.classList.add("off");hiddenLines.add(parseInt(id))}
+        else{routeLayers[id].addTo(map);div.classList.remove("off");hiddenLines.delete(parseInt(id))}
+      }
+      loadBuses();
+    });
+    legList.appendChild(div);
+  }
+}
+
+function busIcon(color,code,destino){
+  const dest=destino?destino.split(" ").slice(0,2).join(" "):"";
+  return L.divIcon({html:`<div class="bus-icon"><div class="bus-num" style="background:${color}">${code}</div>${dest?`<div class="bus-dest">${dest}</div>`:""}</div>`,className:"",iconSize:[130,22],iconAnchor:[11,11]});
+}
+
+async function loadBuses(){
+  try{
+    const d=await apiFetch("autobuses/coordenadas");
+    const buses=Object.values(d).filter(b=>b&&b.latitud&&ALLOWED_IDS.has(b.idlinea)&&!hiddenLines.has(b.idlinea));
+    if(busLayer)busLayer.clearLayers();else{busLayer=L.layerGroup().addTo(map)}
+    buses.forEach(b=>{
+      const line=Object.values(lineas).find(l=>l.id===b.idlinea);
+      const color=line?line.color:"#888";
+      L.marker([b.latitud,b.longitud],{icon:busIcon(color,b.codigo||"?",b.destino),zIndexOffset:1000})
+        .addTo(busLayer)
+        .bindPopup(`<b>Bus ${b.numBus}</b><br>Linea ${b.codigo} — ${b.nombreLinea||""}<br>${b.origen} → ${b.destino}`);
+    });
+    document.getElementById("info").textContent=`${buses.length} buses en circulacion · Actualizado ${new Date().toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"})}`;
+  }catch(e){document.getElementById("info").textContent="Error: "+e.message}
+}
+
+let allVisible=false;
+async function toggleAll(){
+  allVisible=!allVisible;
+  document.getElementById("btn-toggle").textContent=allVisible?"Ocultar todas":"Mostrar todas";
+  for(const div of document.querySelectorAll(".leg-line")){
+    const id=div.dataset.lineId;if(!id)continue;
+    if(allVisible){
+      if(!loadedRoutes.has(id))await loadRouteForLine(id,lineas[id]);
+      if(routeLayers[id]){routeLayers[id].addTo(map);div.classList.remove("off");hiddenLines.delete(parseInt(id))}
+    }else{
+      if(routeLayers[id])map.removeLayer(routeLayers[id]);
+      div.classList.add("off");hiddenLines.add(parseInt(id));
+    }
+  }
+  loadBuses();
+}
+
+// --- Gijon Bici ---
+const BICI_API="https://api.citybik.es/v2/networks/gijon";
+const BICI_DETAIL="https://api.allorigins.win/get?url="+encodeURIComponent("https://bici.gijon.es/api/client/entities/stations/");
+let biciLayer=null,biciTimer=null,currentMode="bus";
+
+function setMode(mode){
+  currentMode=mode;
+  document.getElementById("mode-bus").classList.toggle("on",mode==="bus");
+  document.getElementById("mode-bici").classList.toggle("on",mode==="bici");
+  document.getElementById("legend").style.display=mode==="bus"?"block":"none";
+  // Hide/show bus layers
+  if(busLayer){if(mode==="bus")busLayer.addTo(map);else map.removeLayer(busLayer)}
+  Object.entries(routeLayers).forEach(([id,layer])=>{
+    if(mode==="bus"&&!hiddenLines.has(parseInt(id)))layer.addTo(map);
+    else map.removeLayer(layer);
+  });
+  // Hide/show bici layers
+  if(biciLayer){if(mode==="bici")biciLayer.addTo(map);else map.removeLayer(biciLayer)}
+  if(mode==="bici"){loadBici();if(!biciTimer)biciTimer=setInterval(loadBici,30000)}
+  if(mode==="bus"){if(biciTimer){clearInterval(biciTimer);biciTimer=null}loadBuses()}
+}
+
+function biciColor(n){if(n<=0)return"#ef4444";if(n<=2)return"#f59e0b";return"#22c55e"}
+
+async function loadBici(){
+  try{
+    const r=await fetch(BICI_API);if(!r.ok)return;
+    const d=await r.json();
+    const stations=d.network?.stations||[];
+    if(biciLayer)biciLayer.clearLayers();else biciLayer=L.layerGroup();
+    if(currentMode==="bici")biciLayer.addTo(map);
+    let totalBikes=0;
+    stations.forEach(s=>{
+      const bikes=s.free_bikes||0;
+      const uid=s.extra?.uid;
+      totalBikes+=bikes;
+      const color=biciColor(bikes);
+      const icon=L.divIcon({html:`<div class="bici-icon" style="background:${color}">${bikes}</div>`,className:"",iconSize:[24,24],iconAnchor:[12,12]});
+      const marker=L.marker([s.latitude,s.longitude],{icon}).addTo(biciLayer);
+      const popupDiv=document.createElement("div");
+      popupDiv.innerHTML=`<b>${s.name}</b><br>Bicis disponibles: <b style="color:${biciColor(bikes)}">${bikes}</b><br><span class="bici-slots" style="color:#888">Plazas: cargando...</span>`;
+      marker.bindPopup(popupDiv);
+      marker.on("popupopen",async()=>{
+        if(!uid)return;
+        try{
+          const dr=await fetch(BICI_DETAIL+uid);if(!dr.ok)return;
+          const dw=await dr.json();const inner=JSON.parse(dw.contents);
+          const st=inner.data?.station;if(!st)return;
+          popupDiv.querySelector(".bici-slots").innerHTML=`Plazas disponibles: <b>${st.availableSlots||0}</b>`;
+        }catch{}
+      });
+    });
+    document.getElementById("info").textContent=`${stations.length} estaciones · ${totalBikes} bicis disponibles · ${new Date().toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"})}`;
+  }catch(e){document.getElementById("info").textContent="Error bici: "+e.message}
+}
+
+// --- Search + Dashboard ---
+let allStops=null,searchMarker=null,nearbyMarkers=L.layerGroup().addTo(map);
+const CARTO_CANDIDATES="https://www.cartociudad.es/geocoder/api/geocoder/candidates";
+const CARTO_FIND="https://www.cartociudad.es/geocoder/api/geocoder/find";
+
+async function loadAllStops(){
+  const d=await apiFetch("paradas/todasParadas");
+  allStops=Object.values(d).filter(s=>s&&s.latitud).map(s=>({id:s.idparada,name:s.descripcion,lat:parseFloat(s.latitud),lon:parseFloat(s.longitud)}));
+}
+
+function findNearestStops(lat,lon,n){
+  if(!allStops)return[];
+  return allStops.map(s=>{const dx=(s.lon-lon)*Math.cos(lat*Math.PI/180)*111320,dy=(s.lat-lat)*111320;return{...s,dist:Math.sqrt(dx*dx+dy*dy)}}).sort((a,b)=>a.dist-b.dist).slice(0,n);
+}
+
+let searchDeb=null;
+const sinp=document.getElementById("inp-search"),slist=document.getElementById("sug-list");
+sinp.addEventListener("input",function(){clearTimeout(searchDeb);const q=this.value.trim();if(q.length<3){slist.style.display="none";return}
+  searchDeb=setTimeout(async()=>{
+    try{const r=await fetch(`${CARTO_CANDIDATES}?q=${encodeURIComponent(q+" gijon")}&limit=5`);if(!r.ok)return;
+    const data=await r.json();
+    const gij=data.filter(d=>d.muniCode==="33024");
+    if(!gij.length){slist.style.display="none";return}
+    slist.innerHTML="";
+    gij.forEach(d=>{const div=document.createElement("div");div.innerHTML=`${d.address}<small> ${d.tip_via||""}</small>`;
+      div.addEventListener("click",async()=>{slist.style.display="none";sinp.value=d.address;
+        try{const fr=await fetch(`${CARTO_FIND}?q=${encodeURIComponent(d.address+" gijon")}&type=${d.type}&id=${d.id}`);if(!fr.ok)return;
+        const fd=await fr.json();if(fd.lat&&fd.lng)showNearby(fd.lat,fd.lng)}catch{}
+      });slist.appendChild(div)});
+    slist.style.display="block"}catch{}
+  },400)});
+sinp.addEventListener("keydown",e=>{if(e.key==="Enter"){slist.style.display="none";const q=sinp.value.trim();if(q.length>=3)(async()=>{
+  try{const r=await fetch(`${CARTO_FIND}?q=${encodeURIComponent(q+" gijon")}`);if(!r.ok)return;const d=await r.json();if(d.lat&&d.lng)showNearby(d.lat,d.lng)}catch{}})()}});
+document.addEventListener("click",e=>{if(!e.target.closest("#search-panel"))slist.style.display="none"});
+
+function gpsSearch(){
+  if(!navigator.geolocation){alert("Geolocalizacion no disponible");return}
+  showStatus("Obteniendo ubicacion...");
+  navigator.geolocation.getCurrentPosition(p=>{showStatus("");showNearby(p.coords.latitude,p.coords.longitude)},
+    e=>{showStatus("");alert("Error GPS: "+e.message)},{enableHighAccuracy:true,timeout:10000});
+}
+
+async function showNearby(lat,lon){
+  nearbyMarkers.clearLayers();
+  if(searchMarker)map.removeLayer(searchMarker);
+  searchMarker=L.marker([lat,lon],{zIndexOffset:2000}).addTo(map).bindPopup("Tu ubicacion").openPopup();
+  map.setView([lat+0.003,lon],16);
+
+  const nearest=findNearestStops(lat,lon,5);
+  if(!nearest.length){showStatus("No hay paradas cercanas");return}
+
+  nearest.forEach((s,i)=>{
+    L.circleMarker([s.lat,s.lon],{radius:8,fillColor:"#1565C0",color:"#fff",weight:2,fillOpacity:0.9}).addTo(nearbyMarkers)
+      .bindTooltip(`${i+1}. ${s.name}`,{permanent:true,direction:"right",offset:[10,0],className:"stop-label"});
+  });
+
+  const dash=document.getElementById("dashboard");
+  const container=document.getElementById("dash-stops");
+  container.innerHTML="<div style='color:#888;font-size:12px'>Cargando tiempos...</div>";
+  dash.style.display="block";
+  document.getElementById("legend").classList.add("hidden-by-dash");
+  document.getElementById("info").style.display="none";
+
+  let html="";
+  for(const s of nearest){
+    const distTxt=s.dist<1000?Math.round(s.dist)+" m":(s.dist/1000).toFixed(1)+" km";
+    let arrivalsHtml="";
+    try{
+      const d=await apiFetch(`paradas/parada/${s.id}`);
+      const llegadas=d.llegadas||[];
+      if(llegadas.length){
+        arrivalsHtml=llegadas.map(l=>{
+          const lineColor=lineas[l.linea?.idlinea]?.color||"#888";
+          return`<div class="arrival"><div class="arr-line" style="background:${lineColor}">${l.linea?.codigo||"?"}</div><div class="arr-dest">${l.trayecto?.destino||""}</div><div class="arr-time">${l.minutos} min</div></div>`;
+        }).join("");
+      }else{arrivalsHtml=`<div style="color:#666;font-size:11px">Sin buses en este momento</div>`}
+    }catch{arrivalsHtml=`<div style="color:#666;font-size:11px">Error al consultar</div>`}
+
+    html+=`<div class="stop-card"><div class="stop-name">${s.name}</div><div class="stop-dist">A ${distTxt}</div>${arrivalsHtml}</div>`;
+  }
+  container.innerHTML=html;
+}
+
+function closeDash(){document.getElementById("dashboard").style.display="none";document.getElementById("legend").classList.remove("hidden-by-dash");document.getElementById("info").style.display="block";nearbyMarkers.clearLayers();if(searchMarker){map.removeLayer(searchMarker);searchMarker=null}}
+
+async function init(){
+  showStatus("Conectando...");
+  try{
+    await auth();
+    showStatus("Cargando lineas...");
+    await loadLineas();
+    buildLegend();
+    await loadAllStops();
+    showStatus("Cargando buses...");
+    await loadBuses();
+    showStatus("");
+    setInterval(loadBuses,15000);
+  }catch(e){showStatus("Error: "+e.message)}
+}
+
+init();
+</script>
+</body>
+</html>
