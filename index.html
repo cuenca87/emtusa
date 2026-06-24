@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#1565C0">
-<title>EMTUSA Gijon</title>
+<title>EMTUSA Gijón</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -18,16 +18,21 @@ body{font-family:-apple-system,sans-serif}
 #status{position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:1000;background:rgba(0,0,0,.8);color:#fff;padding:8px 16px;border-radius:20px;font-size:12px;display:none;backdrop-filter:blur(6px);max-width:90%}
 #pbar{position:fixed;top:42px;left:50%;transform:translateX(-50%);z-index:1000;width:200px;height:4px;background:rgba(255,255,255,.15);border-radius:2px;display:none;backdrop-filter:blur(6px)}
 #pbar>div{height:100%;background:#64B5F6;border-radius:2px;transition:width .2s}
-#legend{position:fixed;bottom:10px;left:10px;z-index:999;background:rgba(0,0,0,.85);color:#fff;padding:10px 14px;border-radius:12px;font-size:11px;max-height:45vh;overflow-y:auto;max-width:220px;backdrop-filter:blur(10px);transition:transform .3s}
-#legend.hidden-by-dash{transform:translateY(-100vh)}
-#legend h3{font-size:13px;margin-bottom:6px;color:#64B5F6}
+#legend{position:fixed;bottom:10px;right:10px;z-index:999;background:rgba(0,0,0,.85);color:#fff;padding:10px 14px;border-radius:12px;font-size:11px;max-width:220px;backdrop-filter:blur(10px);transition:all .3s}
+#leg-header{display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+#leg-header h3{font-size:13px;color:#64B5F6;margin:0}
+#btn-minimize{font-size:14px;color:#64B5F6;transition:transform .2s;user-select:none;padding:0 2px}
+#leg-body{margin-top:8px;max-height:45vh;overflow-y:auto}
+#legend.minimized #leg-body{display:none}
+#legend.minimized #btn-minimize{transform:rotate(-90deg)}
+#legend.minimized{padding:8px 12px}
 #btn-toggle{width:100%;padding:6px;border:1px solid rgba(255,255,255,.2);border-radius:6px;background:transparent;color:#fff;font-size:10px;cursor:pointer;margin-bottom:8px}
 #btn-toggle:active{background:rgba(255,255,255,.1)}
 .leg-line{display:flex;align-items:center;gap:6px;padding:4px 0;cursor:pointer;transition:opacity .2s}
 .leg-line.off{opacity:.3}
 .leg-dot{width:24px;height:24px;border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff}
 .leg-name{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#info{position:fixed;bottom:10px;right:10px;z-index:1000;background:rgba(0,0,0,.85);color:#fff;padding:8px 12px;border-radius:10px;font-size:11px;backdrop-filter:blur(10px)}
+#info{position:fixed;bottom:10px;left:10px;z-index:1000;background:rgba(0,0,0,.85);color:#fff;padding:8px 12px;border-radius:10px;font-size:11px;backdrop-filter:blur(10px)}
 .bus-icon{display:flex;align-items:center;gap:4px;white-space:nowrap}
 .bus-num{border:2px solid #fff;border-radius:50%;width:22px;height:22px;text-align:center;line-height:18px;font-size:9px;font-weight:800;color:#fff;box-shadow:0 2px 6px rgba(0,0,0,.4);flex-shrink:0}
 .bus-dest{background:rgba(0,0,0,.75);color:#fff;font-size:9px;font-weight:600;padding:2px 5px;border-radius:4px;max-width:100px;overflow:hidden;text-overflow:ellipsis;box-shadow:0 1px 3px rgba(0,0,0,.3)}
@@ -43,9 +48,6 @@ body{font-family:-apple-system,sans-serif}
 #sug-list div{padding:10px 12px;font-size:12px;color:#fff;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.1)}
 #sug-list div:hover{background:rgba(255,255,255,.1)}
 #sug-list div small{color:rgba(255,255,255,.5)}
-#dashboard{position:fixed;bottom:0;left:0;right:0;z-index:1000;background:rgba(0,0,0,.92);color:#fff;max-height:50vh;overflow-y:auto;border-radius:16px 16px 0 0;padding:16px;display:none;backdrop-filter:blur(10px)}
-#dashboard .dash-title{font-size:14px;font-weight:700;color:#64B5F6;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
-#dashboard .dash-close{cursor:pointer;font-size:18px;color:#aaa}
 .stop-card{background:rgba(255,255,255,.08);border-radius:10px;padding:12px;margin-bottom:8px}
 .stop-name{font-size:13px;font-weight:700;margin-bottom:6px}
 .stop-dist{font-size:11px;color:#64B5F6;margin-bottom:6px}
@@ -54,41 +56,82 @@ body{font-family:-apple-system,sans-serif}
 .arr-line{width:24px;height:24px;border-radius:6px;text-align:center;line-height:24px;font-size:10px;font-weight:800;color:#fff;flex-shrink:0}
 .arr-dest{flex:1;color:#ccc;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .arr-time{font-weight:700;color:#fff;font-size:14px;white-space:nowrap}
-#mode-bar{position:fixed;top:10px;right:60px;z-index:1000;display:flex;gap:4px;backdrop-filter:blur(10px)}
-.mode-btn{padding:8px 14px;border:none;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;background:rgba(0,0,0,.7);color:#fff;transition:all .15s}
+#mode-bar{position:fixed;top:10px;right:50px;z-index:1000;display:flex;gap:4px;backdrop-filter:blur(10px)}
+.mode-btn{padding:7px 10px;border:none;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;background:rgba(0,0,0,.7);color:#fff;transition:all .15s}
 .mode-btn.on{background:#1565C0;color:#fff}
 .stop-label{background:rgba(21,101,192,.9)!important;border:none!important;color:#fff!important;font-size:10px!important;font-weight:600!important;padding:2px 6px!important;border-radius:4px!important}
 .stop-label::before{border-right-color:rgba(21,101,192,.9)!important}
 .bici-icon{width:24px;height:24px;border-radius:50%;text-align:center;line-height:24px;font-size:11px;font-weight:800;color:#fff;box-shadow:0 2px 4px rgba(0,0,0,.3);border:2px solid #fff}
+.taxi-icon{width:28px;height:28px;border-radius:8px;text-align:center;line-height:28px;font-size:15px;box-shadow:0 2px 6px rgba(0,0,0,.4);background:#f59e0b;cursor:pointer}
+#taxi-panel{position:fixed;bottom:10px;right:10px;z-index:999;background:rgba(0,0,0,.85);color:#fff;padding:10px 14px;border-radius:12px;font-size:11px;max-width:260px;backdrop-filter:blur(10px);display:none}
+#taxi-panel h3{font-size:13px;color:#f59e0b;margin:0 0 8px}
+.taxi-phone{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+.taxi-phone:last-child{border:none}
+.taxi-phone a{color:#f59e0b;text-decoration:none;font-weight:700;font-size:13px}
+.taxi-phone span{color:#ccc;font-size:11px;flex:1}
+.aire-icon{width:36px;height:36px;border-radius:10px;text-align:center;line-height:36px;font-size:12px;font-weight:800;color:#fff;box-shadow:0 2px 6px rgba(0,0,0,.4);border:2px solid #fff}
+#aire-panel{position:fixed;bottom:10px;right:10px;z-index:999;background:rgba(0,0,0,.85);color:#fff;padding:10px 14px;border-radius:12px;font-size:11px;max-width:280px;max-height:50vh;overflow-y:auto;backdrop-filter:blur(10px);display:none}
+#aire-panel h3{font-size:13px;color:#4ade80;margin:0 0 8px}
+.aire-card{background:rgba(255,255,255,.08);border-radius:8px;padding:8px 10px;margin-bottom:6px}
+.aire-card:last-child{margin-bottom:0}
+.aire-station{font-size:12px;font-weight:700;margin-bottom:4px}
+.aire-row{display:flex;gap:8px;font-size:10px;color:#ccc;flex-wrap:wrap}
+.aire-qual{font-weight:700;font-size:11px}
+#search-tabs{display:flex;gap:4px;margin-bottom:4px}
+.tab-btn{flex:1;padding:7px;border:none;border-radius:10px;font-size:11px;font-weight:600;cursor:pointer;background:rgba(0,0,0,.6);color:rgba(255,255,255,.5);transition:all .15s}
+.tab-btn.on{background:rgba(0,0,0,.85);color:#64B5F6}
+#stop-dash{background:rgba(0,0,0,.92);color:#fff;border-radius:12px;padding:12px;margin-top:4px;max-height:50vh;overflow-y:auto;display:none;backdrop-filter:blur(10px)}
+#stop-dash .sd-title{font-size:13px;font-weight:700;color:#64B5F6;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+#stop-dash .sd-close{cursor:pointer;font-size:16px;color:#aaa}
+#stop-dash .sd-code{font-size:11px;color:#888;font-weight:400}
+#stop-dash .arrival{border-bottom:1px solid rgba(255,255,255,.08)}
+#stop-dash .arrival:last-child{border:none}
 </style>
 </head>
 <body>
 <div id="map"></div>
 <div id="search-panel">
+  <div id="search-tabs">
+    <button class="tab-btn on" onclick="setSearchMode('address')">Dirección</button>
+    <button class="tab-btn" onclick="setSearchMode('stop')">Parada</button>
+  </div>
   <div id="search-bar">
-    <input id="inp-search" type="text" placeholder="Buscar direccion en Gijon..." autocomplete="off">
-    <button id="btn-gps" onclick="gpsSearch()" title="Mi ubicacion">&#9737;</button>
+    <input id="inp-search" type="text" placeholder="Buscar dirección en Gijón..." autocomplete="off">
+    <button id="btn-gps" onclick="gpsSearch()" title="Mi ubicación">&#9737;</button>
   </div>
   <div id="sug-list"></div>
-</div>
-<div id="dashboard">
-  <div class="dash-title"><span>Paradas cercanas</span><span class="dash-close" onclick="closeDash()">✕</span></div>
-  <div id="dash-stops"></div>
+  <div id="stop-dash">
+    <div class="sd-title"><span id="sd-label"></span><span class="sd-close" onclick="closeStopDash()">✕</span></div>
+    <div id="sd-stops"></div>
+  </div>
 </div>
 <div id="mode-bar">
   <button class="mode-btn on" id="mode-bus" onclick="setMode('bus')">EMTUSA</button>
-  <button class="mode-btn" id="mode-bici" onclick="setMode('bici')">Gijon Bici</button>
+  <button class="mode-btn" id="mode-bici" onclick="setMode('bici')">Gijón Bici</button>
+  <button class="mode-btn" id="mode-taxi" onclick="setMode('taxi')">Taxi</button>
+  <button class="mode-btn" id="mode-aire" onclick="setMode('aire')">Aire</button>
 </div>
 <div id="status"></div>
 <div id="pbar"><div id="pbar-fill"></div></div>
-<div id="legend"><h3>Lineas EMTUSA</h3><button id="btn-toggle" onclick="toggleAll()">Ocultar todas</button><div id="leg-list"></div></div>
+<div id="legend"><div id="leg-header" onclick="toggleLegend()"><h3>Líneas EMTUSA</h3><span id="btn-minimize">▾</span></div><div id="leg-body"><button id="btn-toggle" onclick="toggleAll(event)">Mostrar todas</button><div id="leg-list"></div></div></div>
+<div id="aire-panel">
+  <h3>Calidad del Aire</h3>
+  <div id="aire-stops"></div>
+</div>
+<div id="taxi-panel">
+  <h3>Teléfonos Taxi Gijón</h3>
+  <div class="taxi-phone"><span>Radio Taxi Gijón</span><a href="tel:985141111">985 14 11 11</a></div>
+  <div class="taxi-phone"><span>Taxi Gijón (Los Amarillos)</span><a href="tel:985346666">985 34 66 66</a></div>
+  <div class="taxi-phone"><span>Taxis Gijón (Los Verdes)</span><a href="tel:985164444">985 16 44 44</a></div>
+  <div class="taxi-phone"><span>Fed. Asturiana Sindical del Taxi</span><a href="tel:985164434">985 16 44 34</a></div>
+  <div class="taxi-phone"><span>MoviTaxi</span><a href="tel:900649145">900 649 145</a></div>
+</div>
 <div id="info"></div>
 
 <script>
 if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
 const API="https://emtusasiri.pub.gijon.es/emtusasiri";
 const OSRM="https://router.project-osrm.org/route/v1/driving";
-const ALLOWED_IDS=new Set([1,2,4,10,15,18,20,41,42,43,44,45,46]);
 const LINE_TRAYECTOS={1:[1,2],2:[14,13],4:[9,10,18,19],10:[5,6],15:[11,12],18:[13,14],20:[5,6],41:[1,2],42:[1,2],43:[1,2],44:[4,5],45:[1,2],46:[2,4]};
 let TOKEN=null,lineas={},routeLayers={},busLayer=null,hiddenLines=new Set(),loadedRoutes=new Set();
 
@@ -119,7 +162,6 @@ async function loadLineas(){
   Object.keys(raw).forEach(k=>{
     const l=raw[k];if(!l||!l.codigo)return;
     const id=l.idlinea||parseInt(k);
-    if(!ALLOWED_IDS.has(id))return;
     lineas[id]={id,codigo:l.codigo,color:hc(l.colorhex),desc:l.descripcion?.trim()};
   });
 }
@@ -215,21 +257,23 @@ function busIcon(color,code,destino){
 async function loadBuses(){
   try{
     const d=await apiFetch("autobuses/coordenadas");
-    const buses=Object.values(d).filter(b=>b&&b.latitud&&ALLOWED_IDS.has(b.idlinea)&&!hiddenLines.has(b.idlinea));
+    const buses=Object.values(d).filter(b=>b&&b.latitud&&b.idlinea&&!hiddenLines.has(b.idlinea));
     if(busLayer)busLayer.clearLayers();else{busLayer=L.layerGroup().addTo(map)}
     buses.forEach(b=>{
       const line=Object.values(lineas).find(l=>l.id===b.idlinea);
       const color=line?line.color:"#888";
       L.marker([b.latitud,b.longitud],{icon:busIcon(color,b.codigo||"?",b.destino),zIndexOffset:1000})
         .addTo(busLayer)
-        .bindPopup(`<b>Bus ${b.numBus}</b><br>Linea ${b.codigo} — ${b.nombreLinea||""}<br>${b.origen} → ${b.destino}`);
+        .bindPopup(`<b>Bus ${b.numBus}</b><br>Línea ${b.codigo} — ${b.nombreLinea||""}<br>${b.origen} → ${b.destino}`);
     });
-    document.getElementById("info").textContent=`${buses.length} buses en circulacion · Actualizado ${new Date().toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"})}`;
+    document.getElementById("info").textContent=`${buses.length} buses en circulación · Actualizado ${new Date().toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"})}`;
   }catch(e){document.getElementById("info").textContent="Error: "+e.message}
 }
 
+function toggleLegend(){document.getElementById("legend").classList.toggle("minimized")}
+
 let allVisible=false;
-async function toggleAll(){
+async function toggleAll(e){if(e)e.stopPropagation();
   allVisible=!allVisible;
   document.getElementById("btn-toggle").textContent=allVisible?"Ocultar todas":"Mostrar todas";
   for(const div of document.querySelectorAll(".leg-line")){
@@ -245,7 +289,158 @@ async function toggleAll(){
   loadBuses();
 }
 
-// --- Gijon Bici ---
+// --- Taxi ---
+const TAXI_STOPS=[
+{name:"Cuatro Caminos",lat:43.5408595,lon:-5.6930647},
+{name:"Campo Sagrado",lat:43.5352699,lon:-5.6584051},
+{name:"Cortijo",lat:43.5387338,lon:-5.6862491},
+{name:"Álvarez Garaya",lat:43.5411551,lon:-5.6653931},
+{name:"Severo Ochoa",lat:43.5304696,lon:-5.6713679},
+{name:"El Coto",lat:43.5327767,lon:-5.6486156},
+{name:"ALSA",lat:43.5388584,lon:-5.6667407},
+{name:"Los Campos",lat:43.5379646,lon:-5.6526478},
+{name:"Milagrosa",lat:43.5310388,lon:-5.6663756},
+{name:"Estación de Tren",lat:43.5374674,lon:-5.6753950},
+{name:"Hurlé",lat:43.5382628,lon:-5.6476384},
+{name:"San Esteban",lat:43.5426696,lon:-5.6661898},
+{name:"San Miguel",lat:43.5397403,lon:-5.6573322},
+{name:"Instituto",lat:43.5415848,lon:-5.6614964},
+{name:"Fátima",lat:43.5403482,lon:-5.7008511},
+{name:"El Llano",lat:43.5243755,lon:-5.6683865},
+{name:"Hipercor",lat:43.5249581,lon:-5.6787642},
+{name:"Prendes Pando",lat:43.5369480,lon:-5.6660573},
+{name:"Goya",lat:43.5370452,lon:-5.6603509},
+{name:"Viesques",lat:43.5283948,lon:-5.6436662},
+{name:"Cabueñes",lat:43.5249721,lon:-5.6073102},
+{name:"Seis de Agosto",lat:43.5392211,lon:-5.6630054},
+{name:"Nuevo Roces",lat:43.5100128,lon:-5.6718457},
+{name:"Pumarín",lat:43.5262553,lon:-5.6713901},
+{name:"Alcampo",lat:43.5105740,lon:-5.6925292},
+{name:"El Molinón",lat:43.5371882,lon:-5.6373587},
+{name:"Feria de Muestras",lat:43.5377996,lon:-5.6383995},
+{name:"Somió",lat:43.5339807,lon:-5.6206246},
+{name:"Ambulatorio Pumarín",lat:43.5291520,lon:-5.6788533},
+{name:"Carrefour",lat:43.5367558,lon:-5.6947814},
+{name:"Hospital de Jove",lat:43.5504234,lon:-5.7014791}
+];
+let taxiLayer=null;
+
+function loadTaxi(){
+  if(taxiLayer)taxiLayer.clearLayers();else taxiLayer=L.layerGroup();
+  if(currentMode==="taxi")taxiLayer.addTo(map);
+  TAXI_STOPS.forEach(s=>{
+    const icon=L.divIcon({html:'<div class="taxi-icon">🚕</div>',className:"",iconSize:[28,28],iconAnchor:[14,14]});
+    L.marker([s.lat,s.lon],{icon}).addTo(taxiLayer)
+      .bindPopup(`<b>Parada de Taxi</b><br>${s.name}<br><a href="tel:985141111" style="color:#1565C0">☎ 985 14 11 11</a>`);
+  });
+  document.getElementById("info").textContent=`${TAXI_STOPS.length} paradas de taxi · Radio Taxi: 985 14 11 11`;
+}
+
+// --- Calidad del Aire ---
+const AIRE_URL="https://opendata.gijon.es/descargar.php?id=1&tipo=CSV";
+let aireLayer=null;
+
+function parseAireCSV(text){
+  const lines=text.trim().split("\n");
+  return lines.slice(1).map(line=>{
+    const vals=[];let cur="",inQ=false;
+    for(const ch of line){if(ch==='"')inQ=!inQ;else if(ch===","&&!inQ){vals.push(cur.trim());cur=""}else cur+=ch}
+    vals.push(cur.trim());
+    return{id:vals[0],name:vals[1],lat:parseFloat(vals[2]),lon:parseFloat(vals[3]),fecha:vals[4],hora:parseInt(vals[5]),
+      SO2:parseFloat(vals[6]),NO:parseFloat(vals[7]),NO2:parseFloat(vals[8]),CO:parseFloat(vals[9]),
+      PM10:parseFloat(vals[10]),O3:parseFloat(vals[11]),dd:parseFloat(vals[12]),vv:parseFloat(vals[13]),
+      TMP:parseFloat(vals[14]),HR:parseFloat(vals[15]),PRB:parseFloat(vals[16]),RS:parseFloat(vals[17]),
+      LL:parseFloat(vals[18]),BEN:parseFloat(vals[19]),TOL:parseFloat(vals[20]),MXIL:parseFloat(vals[21]),PM25:parseFloat(vals[22])};
+  });
+}
+
+function getLatestByStation(rows){
+  const st={};
+  rows.forEach(r=>{
+    if(!r.id||isNaN(r.TMP)&&isNaN(r.NO2)&&isNaN(r.PM10))return;
+    const prev=st[r.id];
+    if(!prev||r.fecha>prev.fecha||(r.fecha===prev.fecha&&r.hora>prev.hora))st[r.id]=r;
+  });
+  return Object.values(st);
+}
+
+function airQuality(r){
+  const no2=r.NO2||0,pm10=r.PM10||0,pm25=r.PM25||0,o3=r.O3||0,so2=r.SO2||0;
+  if(pm10>100||pm25>50||no2>200||o3>180||so2>350)return{label:"Mala",color:"#ef4444"};
+  if(pm10>50||pm25>25||no2>100||o3>120||so2>200)return{label:"Mejorable",color:"#f97316"};
+  if(pm10>25||pm25>15||no2>50||o3>60||so2>100)return{label:"Aceptable",color:"#f59e0b"};
+  return{label:"Buena",color:"#22c55e"};
+}
+
+function v(n){return isNaN(n)?"--":n}
+
+function yesterdayStr(){
+  const d=new Date();d.setDate(d.getDate()-1);
+  return d.toISOString().slice(0,10);
+}
+
+function getRainYesterday(rows){
+  const ayer=yesterdayStr();
+  const acc={};
+  rows.forEach(r=>{
+    if(r.fecha!==ayer||isNaN(r.LL))return;
+    if(!acc[r.id])acc[r.id]={id:r.id,name:r.name,lat:r.lat,lon:r.lon,total:0};
+    acc[r.id].total+=r.LL;
+  });
+  return Object.values(acc);
+}
+
+function rainColor(mm){
+  if(mm<=0)return"rgba(100,181,246,0.15)";
+  if(mm<2)return"rgba(100,181,246,0.3)";
+  if(mm<5)return"rgba(66,165,245,0.4)";
+  if(mm<15)return"rgba(30,136,229,0.45)";
+  return"rgba(21,101,192,0.5)";
+}
+
+async function loadAire(){
+  try{
+    showStatus("Cargando calidad del aire...");
+    const r=await fetch(AIRE_URL);if(!r.ok)throw new Error(r.status);
+    const rows=parseAireCSV(await r.text());
+    const latest=getLatestByStation(rows);
+    const rain=getRainYesterday(rows);
+    if(aireLayer)aireLayer.clearLayers();else aireLayer=L.layerGroup();
+    if(currentMode==="aire")aireLayer.addTo(map);
+
+    rain.forEach(s=>{
+      if(s.total<=0)return;
+      const radius=Math.min(300+s.total*120,2500);
+      L.circle([s.lat,s.lon],{radius,color:rainColor(s.total),fillColor:rainColor(s.total),fillOpacity:1,weight:0,interactive:false}).addTo(aireLayer);
+    });
+
+    let panelHtml="";
+    latest.forEach(s=>{
+      const q=airQuality(s);
+      const icon=L.divIcon({html:`<div class="aire-icon" style="background:${q.color}">${isNaN(s.TMP)?"--":Math.round(s.TMP)}°</div>`,className:"",iconSize:[36,36],iconAnchor:[18,18]});
+      const shortName=s.name.replace("Estación ","");
+      const stRain=rain.find(x=>x.id===s.id);
+      const rainMm=stRain?stRain.total.toFixed(1):"0";
+      L.marker([s.lat,s.lon],{icon}).addTo(aireLayer).bindPopup(
+        `<b>${s.name}</b><br><small>${s.fecha} · ${s.hora}:00h</small><br><b style="color:${q.color}">Calidad: ${q.label}</b>`+
+        `<hr style="border-color:rgba(0,0,0,.1);margin:4px 0"><b>Meteorología</b><br>`+
+        `Temp: ${v(s.TMP)}°C · Humedad: ${v(s.HR)}% · Viento: ${v(s.vv)} m/s · Presión: ${v(s.PRB)} hPa`+
+        `<br>Lluvia ahora: ${v(s.LL)} mm · <b>Acum. ayer: ${rainMm} mm</b>`+
+        `<hr style="border-color:rgba(0,0,0,.1);margin:4px 0"><b>Contaminantes (μg/m³)</b><br>`+
+        `NO₂: ${v(s.NO2)} · PM₁₀: ${v(s.PM10)} · PM₂.₅: ${v(s.PM25)}<br>O₃: ${v(s.O3)} · SO₂: ${v(s.SO2)} · CO: ${v(s.CO)}`
+      );
+      panelHtml+=`<div class="aire-card"><div class="aire-station">${shortName}</div>`+
+        `<div class="aire-row"><span>🌡 ${v(s.TMP)}°C</span><span>💧 ${v(s.HR)}%</span><span>💨 ${v(s.vv)} m/s</span><span>🌧 ${rainMm} mm ayer</span></div>`+
+        `<div class="aire-row"><span class="aire-qual" style="color:${q.color}">● ${q.label}</span><span>NO₂ ${v(s.NO2)}</span><span>PM₁₀ ${v(s.PM10)}</span><span>O₃ ${v(s.O3)}</span></div></div>`;
+    });
+    document.getElementById("aire-stops").innerHTML=panelHtml;
+    const d=latest[0];
+    document.getElementById("info").textContent=d?`${latest.length} estaciones · ${d.fecha} ${d.hora}:00h`:"Sin datos";
+    showStatus("");
+  }catch(e){showStatus("");document.getElementById("info").textContent="Error aire: "+e.message}
+}
+
+// --- Gijón Bici ---
 const BICI_API="https://api.citybik.es/v2/networks/gijon";
 const BICI_DETAIL="https://api.allorigins.win/get?url="+encodeURIComponent("https://bici.gijon.es/api/client/entities/stations/");
 let biciLayer=null,biciTimer=null,currentMode="bus";
@@ -254,17 +449,25 @@ function setMode(mode){
   currentMode=mode;
   document.getElementById("mode-bus").classList.toggle("on",mode==="bus");
   document.getElementById("mode-bici").classList.toggle("on",mode==="bici");
+  document.getElementById("mode-taxi").classList.toggle("on",mode==="taxi");
+  document.getElementById("mode-aire").classList.toggle("on",mode==="aire");
   document.getElementById("legend").style.display=mode==="bus"?"block":"none";
-  // Hide/show bus layers
+  document.getElementById("taxi-panel").style.display=mode==="taxi"?"block":"none";
+  document.getElementById("aire-panel").style.display=mode==="aire"?"block":"none";
+  document.getElementById("search-panel").style.display=mode==="bus"?"block":"none";
+  if(mode!=="bus"){closeStopDash();if(stopsLayer)map.removeLayer(stopsLayer)}
   if(busLayer){if(mode==="bus")busLayer.addTo(map);else map.removeLayer(busLayer)}
   Object.entries(routeLayers).forEach(([id,layer])=>{
     if(mode==="bus"&&!hiddenLines.has(parseInt(id)))layer.addTo(map);
     else map.removeLayer(layer);
   });
-  // Hide/show bici layers
   if(biciLayer){if(mode==="bici")biciLayer.addTo(map);else map.removeLayer(biciLayer)}
+  if(taxiLayer){if(mode==="taxi")taxiLayer.addTo(map);else map.removeLayer(taxiLayer)}
+  if(aireLayer){if(mode==="aire")aireLayer.addTo(map);else map.removeLayer(aireLayer)}
   if(mode==="bici"){loadBici();if(!biciTimer)biciTimer=setInterval(loadBici,30000)}
-  if(mode==="bus"){if(biciTimer){clearInterval(biciTimer);biciTimer=null}loadBuses()}
+  else if(mode==="taxi"){loadTaxi();if(biciTimer){clearInterval(biciTimer);biciTimer=null}}
+  else if(mode==="aire"){loadAire();if(biciTimer){clearInterval(biciTimer);biciTimer=null}}
+  else{if(biciTimer){clearInterval(biciTimer);biciTimer=null}loadBuses()}
 }
 
 function biciColor(n){if(n<=0)return"#ef4444";if(n<=2)return"#f59e0b";return"#22c55e"}
@@ -302,7 +505,7 @@ async function loadBici(){
 }
 
 // --- Search + Dashboard ---
-let allStops=null,searchMarker=null,nearbyMarkers=L.layerGroup().addTo(map);
+let allStops=null,searchMarker=null,nearbyMarkers=L.layerGroup().addTo(map),stopsLayer=null;
 const CARTO_CANDIDATES="https://www.cartociudad.es/geocoder/api/geocoder/candidates";
 const CARTO_FIND="https://www.cartociudad.es/geocoder/api/geocoder/find";
 
@@ -316,9 +519,82 @@ function findNearestStops(lat,lon,n){
   return allStops.map(s=>{const dx=(s.lon-lon)*Math.cos(lat*Math.PI/180)*111320,dy=(s.lat-lat)*111320;return{...s,dist:Math.sqrt(dx*dx+dy*dy)}}).sort((a,b)=>a.dist-b.dist).slice(0,n);
 }
 
-let searchDeb=null;
+let searchDeb=null,searchMode="address";
 const sinp=document.getElementById("inp-search"),slist=document.getElementById("sug-list");
-sinp.addEventListener("input",function(){clearTimeout(searchDeb);const q=this.value.trim();if(q.length<3){slist.style.display="none";return}
+
+function normalizeText(t){return t.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase()}
+
+function searchStopsLocal(query){
+  if(!allStops)return[];
+  const q=normalizeText(query);
+  const isNum=/^\d+$/.test(query.trim());
+  return allStops.filter(s=>{
+    if(isNum)return String(s.id).includes(query.trim());
+    return normalizeText(s.name).includes(q);
+  }).slice(0,8);
+}
+
+function buildStopsLayer(){
+  if(stopsLayer||!allStops)return;
+  stopsLayer=L.layerGroup();
+  allStops.forEach(s=>{
+    L.circleMarker([s.lat,s.lon],{radius:5,fillColor:"#1565C0",color:"#fff",weight:1.5,fillOpacity:0.8})
+      .addTo(stopsLayer)
+      .bindTooltip(s.name,{direction:"top",offset:[0,-6],className:"stop-label"})
+      .on("click",()=>showStopDash(s));
+  });
+}
+
+function setSearchMode(mode){
+  searchMode=mode;
+  document.querySelectorAll(".tab-btn").forEach((b,i)=>{b.classList.toggle("on",(i===0&&mode==="address")||(i===1&&mode==="stop"))});
+  sinp.value="";slist.style.display="none";
+  sinp.placeholder=mode==="address"?"Buscar dirección en Gijón...":"Buscar parada (nombre o código)...";
+  if(mode==="stop"){buildStopsLayer();if(stopsLayer)stopsLayer.addTo(map)}
+  else{if(stopsLayer)map.removeLayer(stopsLayer)}
+}
+
+async function showStopDash(stop){
+  nearbyMarkers.clearLayers();
+  if(searchMarker){map.removeLayer(searchMarker);searchMarker=null}
+  L.circleMarker([stop.lat,stop.lon],{radius:10,fillColor:"#1565C0",color:"#fff",weight:3,fillOpacity:0.9}).addTo(nearbyMarkers)
+    .bindTooltip(stop.name,{permanent:true,direction:"right",offset:[10,0],className:"stop-label"});
+  map.setView([stop.lat+0.002,stop.lon],17);
+
+  const panel=document.getElementById("stop-dash");
+  const container=document.getElementById("sd-stops");
+  document.getElementById("sd-label").innerHTML=`${stop.name} <span class="sd-code">#${stop.id}</span>`;
+  container.innerHTML="<div style='color:#888;font-size:12px'>Cargando...</div>";
+  panel.style.display="block";
+
+  let html="";
+  try{
+    const d=await apiFetch(`paradas/parada/${stop.id}`);
+    const llegadas=d.llegadas||[];
+    if(llegadas.length){
+      html=llegadas.map(l=>{
+        const lineColor=lineas[l.linea?.idlinea]?.color||"#888";
+        return`<div class="arrival"><div class="arr-line" style="background:${lineColor}">${l.linea?.codigo||"?"}</div><div class="arr-dest">${l.trayecto?.destino||""}</div><div class="arr-time">${l.minutos} min</div></div>`;
+      }).join("");
+    }else{html=`<div style="color:#666;font-size:12px">Sin buses en este momento</div>`}
+  }catch{html=`<div style="color:#666;font-size:12px">Error al consultar</div>`}
+  container.innerHTML=html;
+}
+
+function closeStopDash(){document.getElementById("stop-dash").style.display="none";nearbyMarkers.clearLayers();if(searchMarker){map.removeLayer(searchMarker);searchMarker=null}}
+
+sinp.addEventListener("input",function(){clearTimeout(searchDeb);const q=this.value.trim();
+  if(searchMode==="stop"){
+    if(q.length<2){slist.style.display="none";return}
+    const matches=searchStopsLocal(q);
+    if(!matches.length){slist.style.display="none";return}
+    slist.innerHTML="";
+    matches.forEach(s=>{const div=document.createElement("div");div.innerHTML=`${s.name}<small> #${s.id}</small>`;
+      div.addEventListener("click",()=>{slist.style.display="none";sinp.value=s.name;showStopDash(s)});
+      slist.appendChild(div)});
+    slist.style.display="block";return;
+  }
+  if(q.length<3){slist.style.display="none";return}
   searchDeb=setTimeout(async()=>{
     try{const r=await fetch(`${CARTO_CANDIDATES}?q=${encodeURIComponent(q+" gijon")}&limit=5`);if(!r.ok)return;
     const data=await r.json();
@@ -332,21 +608,23 @@ sinp.addEventListener("input",function(){clearTimeout(searchDeb);const q=this.va
       });slist.appendChild(div)});
     slist.style.display="block"}catch{}
   },400)});
-sinp.addEventListener("keydown",e=>{if(e.key==="Enter"){slist.style.display="none";const q=sinp.value.trim();if(q.length>=3)(async()=>{
+sinp.addEventListener("keydown",e=>{if(e.key==="Enter"){slist.style.display="none";const q=sinp.value.trim();
+  if(searchMode==="stop"){if(q.length>=2){const matches=searchStopsLocal(q);if(matches.length)showStopDash(matches[0])}return}
+  if(q.length>=3)(async()=>{
   try{const r=await fetch(`${CARTO_FIND}?q=${encodeURIComponent(q+" gijon")}`);if(!r.ok)return;const d=await r.json();if(d.lat&&d.lng)showNearby(d.lat,d.lng)}catch{}})()}});
 document.addEventListener("click",e=>{if(!e.target.closest("#search-panel"))slist.style.display="none"});
 
 function gpsSearch(){
-  if(!navigator.geolocation){alert("Geolocalizacion no disponible");return}
-  showStatus("Obteniendo ubicacion...");
+  if(!navigator.geolocation){alert("Geolocalización no disponible");return}
+  showStatus("Obteniendo ubicación...");
   navigator.geolocation.getCurrentPosition(p=>{showStatus("");showNearby(p.coords.latitude,p.coords.longitude)},
     e=>{showStatus("");alert("Error GPS: "+e.message)},{enableHighAccuracy:true,timeout:10000});
 }
 
 async function showNearby(lat,lon){
   nearbyMarkers.clearLayers();
-  if(searchMarker)map.removeLayer(searchMarker);
-  searchMarker=L.marker([lat,lon],{zIndexOffset:2000}).addTo(map).bindPopup("Tu ubicacion").openPopup();
+  if(searchMarker){map.removeLayer(searchMarker);searchMarker=null}
+  searchMarker=L.marker([lat,lon],{zIndexOffset:2000}).addTo(map).bindPopup("Tu ubicación").openPopup();
   map.setView([lat+0.003,lon],16);
 
   const nearest=findNearestStops(lat,lon,5);
@@ -357,12 +635,11 @@ async function showNearby(lat,lon){
       .bindTooltip(`${i+1}. ${s.name}`,{permanent:true,direction:"right",offset:[10,0],className:"stop-label"});
   });
 
-  const dash=document.getElementById("dashboard");
-  const container=document.getElementById("dash-stops");
+  const panel=document.getElementById("stop-dash");
+  const container=document.getElementById("sd-stops");
+  document.getElementById("sd-label").innerHTML="Paradas cercanas";
   container.innerHTML="<div style='color:#888;font-size:12px'>Cargando tiempos...</div>";
-  dash.style.display="block";
-  document.getElementById("legend").classList.add("hidden-by-dash");
-  document.getElementById("info").style.display="none";
+  panel.style.display="block";
 
   let html="";
   for(const s of nearest){
@@ -384,13 +661,11 @@ async function showNearby(lat,lon){
   container.innerHTML=html;
 }
 
-function closeDash(){document.getElementById("dashboard").style.display="none";document.getElementById("legend").classList.remove("hidden-by-dash");document.getElementById("info").style.display="block";nearbyMarkers.clearLayers();if(searchMarker){map.removeLayer(searchMarker);searchMarker=null}}
-
 async function init(){
   showStatus("Conectando...");
   try{
     await auth();
-    showStatus("Cargando lineas...");
+    showStatus("Cargando líneas...");
     await loadLineas();
     buildLegend();
     await loadAllStops();
