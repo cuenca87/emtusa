@@ -1,12 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <rect width="512" height="512" rx="96" fill="#1565C0"/>
-  <!-- Elogio del Horizonte (arco) -->
-  <path d="M140 320 Q170 180 256 160 Q342 180 372 320" fill="none" stroke="#fff" stroke-width="18" stroke-linecap="round"/>
-  <rect x="130" y="316" width="20" height="50" rx="4" fill="#fff"/>
-  <rect x="362" y="316" width="20" height="50" rx="4" fill="#fff"/>
-  <!-- Mar -->
-  <path d="M60 390 Q120 375 180 390 Q240 405 300 390 Q360 375 420 390 Q450 397 452 400" fill="none" stroke="#64B5F6" stroke-width="6" stroke-linecap="round" opacity=".7"/>
-  <path d="M60 410 Q120 395 180 410 Q240 425 300 410 Q360 395 420 410 Q450 417 452 420" fill="none" stroke="#64B5F6" stroke-width="5" stroke-linecap="round" opacity=".5"/>
-  <!-- Texto -->
-  <text x="256" y="460" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="48" font-weight="800" fill="#fff" letter-spacing="6">GIJÓN</text>
+  <!-- G estilizada inspirada en la marca Gijón -->
+  <path d="M310 180 A130 130 0 1 0 310 340 L310 270 L260 270" fill="none" stroke="#fff" stroke-width="32" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Tilde de la ó -->
+  <line x1="340" y1="140" x2="370" y2="115" stroke="#64B5F6" stroke-width="16" stroke-linecap="round"/>
 </svg>
