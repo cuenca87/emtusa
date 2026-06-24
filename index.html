@@ -136,14 +136,7 @@ body{font-family:-apple-system,sans-serif}
 <div id="status"></div>
 <div id="pbar"><div id="pbar-fill"></div></div>
 <div id="legend" style="display:none"><div id="leg-header" onclick="toggleLegend()"><h3>Líneas EMTUSA</h3><span id="btn-minimize">▾</span></div><div id="leg-body"><button id="btn-toggle" onclick="toggleAll(event)">Mostrar todas</button><div id="leg-list"></div></div></div>
-<div id="calle-panel" style="position:fixed;top:140px;right:10px;z-index:999;width:200px">
-  <div style="display:flex;gap:3px">
-    <input id="inp-calle" type="text" placeholder="Buscar calle..." autocomplete="off" style="flex:1;padding:7px 10px;border:none;border-radius:10px;background:rgba(0,0,0,.7);color:#fff;font-size:12px;outline:none;width:0">
-    <button onclick="buscarCalle()" style="width:32px;border:none;border-radius:10px;background:rgba(0,0,0,.7);color:#64B5F6;cursor:pointer;font-size:14px">&#128269;</button>
-  </div>
-  <div id="calle-sug" style="background:rgba(0,0,0,.9);border-radius:0 0 10px 10px;max-height:250px;overflow-y:auto;display:none"></div>
-  <button onclick="geolocalizarCalle()" style="width:100%;margin-top:3px;padding:7px;border:none;border-radius:10px;background:rgba(0,0,0,.7);color:#64B5F6;cursor:pointer;font-size:12px;font-weight:600">&#9737; Localización</button>
-</div>
+<button id="btn-geolocate" onclick="geolocalizarCalle()" style="position:fixed;top:140px;right:10px;z-index:999;width:36px;height:36px;border:none;border-radius:50%;background:rgba(0,0,0,.7);color:#64B5F6;cursor:pointer;font-size:20px;box-shadow:0 2px 6px rgba(0,0,0,.3)">&#9737;</button>
 <div id="aire-panel">
   <h3>Calidad del Aire</h3>
   <div id="aire-stops"></div>
@@ -430,47 +423,8 @@ async function toggleAll(e){if(e)e.stopPropagation();
   loadBuses();
 }
 
-// --- Callejero ---
-let calleMarker=null,calleDeb=null;
-const calleInp=document.getElementById("inp-calle"),calleSug=document.getElementById("calle-sug");
-
-calleInp.addEventListener("input",function(){clearTimeout(calleDeb);const q=this.value.trim();
-  if(q.length<3){calleSug.style.display="none";return}
-  calleDeb=setTimeout(async()=>{
-    try{const r=await fetch(`${CARTO_CANDIDATES}?q=${encodeURIComponent(q+" gijon")}&limit=8`);if(!r.ok)return;
-    const data=await r.json();
-    const gij=data.filter(d=>d.muniCode==="33024");
-    if(!gij.length){calleSug.style.display="none";return}
-    calleSug.innerHTML="";
-    gij.forEach(d=>{const div=document.createElement("div");
-      div.style.cssText="padding:10px 12px;font-size:12px;color:#fff;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.1)";
-      div.innerHTML=`${d.address}<small style="color:rgba(255,255,255,.5)"> ${d.tip_via||""} ${d.portalNumber||""}</small>`;
-      div.addEventListener("click",async()=>{calleSug.style.display="none";calleInp.value=d.address;
-        try{const fr=await fetch(`${CARTO_FIND}?q=${encodeURIComponent(d.address+" gijon")}&type=${d.type}&id=${d.id}`);if(!fr.ok)return;
-        const fd=await fr.json();if(fd.lat&&fd.lng){
-          if(calleMarker)map.removeLayer(calleMarker);
-          calleMarker=L.marker([fd.lat,fd.lng],{zIndexOffset:2000}).addTo(map).bindPopup(`<b>${d.address}</b><br>${d.tip_via||""} ${d.portalNumber||""}`).openPopup();
-          map.setView([fd.lat,fd.lng],18);
-        }}catch{}
-      });
-      div.addEventListener("mouseenter",()=>{div.style.background="rgba(255,255,255,.1)"});
-      div.addEventListener("mouseleave",()=>{div.style.background=""});
-      calleSug.appendChild(div)});
-    calleSug.style.display="block"}catch{}
-  },400)});
-
-calleInp.addEventListener("keydown",e=>{if(e.key==="Enter"){calleSug.style.display="none";buscarCalle()}});
-document.addEventListener("click",e=>{if(!e.target.closest("#calle-panel"))calleSug.style.display="none"});
-
-async function buscarCalle(){
-  const q=calleInp.value.trim();if(q.length<3)return;
-  try{const r=await fetch(`${CARTO_FIND}?q=${encodeURIComponent(q+" gijon")}`);if(!r.ok)return;
-  const d=await r.json();if(d.lat&&d.lng){
-    if(calleMarker)map.removeLayer(calleMarker);
-    calleMarker=L.marker([d.lat,d.lng],{zIndexOffset:2000}).addTo(map).bindPopup(`<b>${d.address||q}</b>`).openPopup();
-    map.setView([d.lat,d.lng],18);
-  }}catch{}
-}
+// --- Geolocalización ---
+let calleMarker=null;
 
 function geolocalizarCalle(){
   if(!navigator.geolocation){alert("Geolocalización no disponible");return}
