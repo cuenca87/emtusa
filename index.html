@@ -56,8 +56,7 @@ body{font-family:-apple-system,sans-serif}
 .arr-line{width:24px;height:24px;border-radius:6px;text-align:center;line-height:24px;font-size:10px;font-weight:800;color:#fff;flex-shrink:0}
 .arr-dest{flex:1;color:#ccc;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .arr-time{font-weight:700;color:#fff;font-size:14px;white-space:nowrap}
-#mode-bar{position:fixed;top:10px;right:50px;z-index:1000;display:flex;flex-direction:column;gap:3px;align-items:flex-end;backdrop-filter:blur(10px)}
-.mode-row{display:flex;gap:4px}
+#mode-bar{position:fixed;top:10px;right:50px;z-index:1000;display:flex;gap:3px;backdrop-filter:blur(10px)}
 .mode-btn{padding:7px 10px;border:none;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;background:rgba(0,0,0,.7);color:#fff;transition:all .15s}
 .mode-btn.on{background:#1565C0;color:#fff}
 .stop-label{background:rgba(21,101,192,.9)!important;border:none!important;color:#fff!important;font-size:10px!important;font-weight:600!important;padding:2px 6px!important;border-radius:4px!important}
@@ -69,15 +68,8 @@ body{font-family:-apple-system,sans-serif}
 .taxi-phone{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.08)}
 .taxi-phone:last-child{border:none}
 .taxi-phone a{color:#f59e0b;text-decoration:none;font-weight:700;font-size:13px}
-#meteo-panel{position:fixed;top:50px;left:10px;z-index:999;background:rgba(0,0,0,.85);color:#fff;padding:12px;border-radius:12px;font-size:11px;width:220px;max-height:calc(100vh - 70px);overflow-y:auto;backdrop-filter:blur(10px);display:none}
-#meteo-panel h3{font-size:13px;color:#64B5F6;margin:0 0 8px}
-.meteo-card{background:rgba(255,255,255,.08);border-radius:8px;padding:8px 10px;margin-bottom:6px}
-.meteo-card-head{display:flex;justify-content:space-between;align-items:center}
-.meteo-name{font-size:11px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
-.meteo-temp{font-size:18px;font-weight:800;white-space:nowrap;margin-left:6px}
-.meteo-details{font-size:10px;color:#aaa;margin-top:3px;line-height:1.5}
-.meteo-avg{text-align:center;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.1)}
-.meteo-avg-temp{font-size:32px;font-weight:800}
+.meteo-avg{text-align:center;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.1)}
+.meteo-avg-temp{font-size:28px;font-weight:800}
 .meteo-avg-label{font-size:10px;color:#aaa;margin-top:2px}
 #compare-bar{position:fixed;bottom:10px;left:50%;transform:translateX(-50%);z-index:1001;background:rgba(0,0,0,.85);border-radius:12px;padding:8px 12px;backdrop-filter:blur(10px);display:none;align-items:center;gap:6px}
 #compare-bar select{padding:6px 8px;border-radius:8px;border:1px solid #555;background:#16213e;color:#e0e0e0;font-size:11px}
@@ -129,16 +121,12 @@ body{font-family:-apple-system,sans-serif}
   </div>
 </div>
 <div id="mode-bar">
-  <div class="mode-row">
-    <button class="mode-btn on" id="mode-bus" onclick="setMode('bus')">EMTUSA</button>
-    <button class="mode-btn" id="mode-bici" onclick="setMode('bici')">Gijón Bici</button>
-    <button class="mode-btn" id="mode-taxi" onclick="setMode('taxi')">Taxi</button>
-  </div>
-  <div class="mode-row">
-    <button class="mode-btn" id="mode-aire" onclick="setMode('aire')">Calidad del Aire</button>
-    <button class="mode-btn" id="mode-meteo" onclick="setMode('meteo')">Tiempo</button>
-    <button class="mode-btn" id="mode-compare" onclick="toggleCompare()" style="background:rgba(0,0,0,.5)">Comparar</button>
-  </div>
+  <button class="mode-btn on" id="mode-bus" onclick="setMode('bus')">EMTUSA</button>
+  <button class="mode-btn" id="mode-bici" onclick="setMode('bici')">Bici</button>
+  <button class="mode-btn" id="mode-taxi" onclick="setMode('taxi')">Taxi</button>
+  <button class="mode-btn" id="mode-aire" onclick="setMode('aire')">Aire</button>
+  <button class="mode-btn" id="mode-meteo" onclick="setMode('meteo')">Tiempo</button>
+  <button class="mode-btn" id="mode-compare" onclick="toggleCompare()" style="background:rgba(0,0,0,.5)">Comparar</button>
 </div>
 <div id="compare-bar" style="display:none">
   <select id="cmp-left"><option value="carto">Callejero</option><option value="pnoa">PNOA Actual</option><option value="mtn">MTN25</option><option value="pnoa20">PNOA 2020</option><option value="pnoa17">PNOA 2017</option><option value="pnoa14">PNOA 2014</option><option value="pnoa11">PNOA 2011</option><option value="pnoa09">PNOA 2009</option><option value="ams">Vuelo 1956</option></select>
@@ -154,10 +142,7 @@ body{font-family:-apple-system,sans-serif}
     <button onclick="buscarCalle()" style="width:32px;border:none;border-radius:10px;background:rgba(0,0,0,.7);color:#64B5F6;cursor:pointer;font-size:14px">&#128269;</button>
   </div>
   <div id="calle-sug" style="background:rgba(0,0,0,.9);border-radius:0 0 10px 10px;max-height:250px;overflow-y:auto;display:none"></div>
-</div>
-<div id="meteo-panel">
-  <h3>Tiempo en Gijón</h3>
-  <div id="meteo-content">Cargando...</div>
+  <button onclick="geolocalizarCalle()" style="width:100%;margin-top:3px;padding:7px;border:none;border-radius:10px;background:rgba(0,0,0,.7);color:#64B5F6;cursor:pointer;font-size:12px;font-weight:600">&#9737; Localización</button>
 </div>
 <div id="aire-panel">
   <h3>Calidad del Aire</h3>
@@ -268,7 +253,6 @@ function cleanAllLayers(){
   document.getElementById("search-panel").style.display="none";
   document.getElementById("taxi-panel").style.display="none";
   document.getElementById("aire-panel").style.display="none";
-  document.getElementById("meteo-panel").style.display="none";
   if(biciTimer){clearInterval(biciTimer);biciTimer=null}
 }
 
@@ -488,6 +472,18 @@ async function buscarCalle(){
   }}catch{}
 }
 
+function geolocalizarCalle(){
+  if(!navigator.geolocation){alert("Geolocalización no disponible");return}
+  showStatus("Obteniendo ubicación...");
+  navigator.geolocation.getCurrentPosition(p=>{
+    showStatus("");
+    const lat=p.coords.latitude,lon=p.coords.longitude;
+    if(calleMarker)map.removeLayer(calleMarker);
+    calleMarker=L.marker([lat,lon],{zIndexOffset:2000}).addTo(map).bindPopup("<b>Tu ubicación</b>").openPopup();
+    map.setView([lat,lon],17);
+  },e=>{showStatus("");alert("Error GPS: "+e.message)},{enableHighAccuracy:true,timeout:10000});
+}
+
 // --- Taxi ---
 const TAXI_STOPS=[
 {name:"Cuatro Caminos",lat:43.5408595,lon:-5.6930647},
@@ -605,7 +601,6 @@ async function loadMeteo(){
       html+=`<div class="meteo-details">💧 ${s.humidity||"--"}% · 💨 ${s.wind||"--"} km/h ${windArrow} · 🌧 ${s.precip||0} mm · ${s.time}</div></div>`;
     });
 
-    document.getElementById("meteo-content").innerHTML=html;
     document.getElementById("info").textContent=`${obs.length} estaciones · ${avgTemp!=null?avgTemp.toFixed(1):"--"}°C · ${new Date().toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"})}`;
     showStatus("");
   }catch(e){showStatus("");document.getElementById("info").textContent="Error meteo: "+e.message}
