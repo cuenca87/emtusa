@@ -25,7 +25,7 @@ body{font-family:-apple-system,sans-serif}
 #leg-body{margin-top:8px;max-height:45vh;overflow-y:auto}
 #legend.minimized #leg-body{display:none}
 #legend.minimized #btn-minimize{transform:rotate(-90deg)}
-#legend.minimized{padding:8px 12px}
+#legend.minimized{padding:8px 12px;bottom:48px}
 #btn-toggle{width:100%;padding:6px;border:1px solid rgba(255,255,255,.2);border-radius:6px;background:transparent;color:#fff;font-size:10px;cursor:pointer;margin-bottom:8px}
 #btn-toggle:active{background:rgba(255,255,255,.1)}
 .leg-line{display:flex;align-items:center;gap:6px;padding:4px 0;cursor:pointer;transition:opacity .2s}
@@ -790,12 +790,17 @@ function buildStopsLayer(){
 
 let activeBusTab=null;
 function setBusTab(tab){
+  // Al salir de "Líneas", quitar del mapa las rutas visibles
+  if(activeBusTab==="lin"&&tab!=="lin"){
+    Object.values(routeLayers).forEach(l=>{if(map.hasLayer(l))map.removeLayer(l)});
+  }
   if(activeBusTab===tab){
     activeBusTab=null;
     document.querySelectorAll("#bus-tabs .tab-btn").forEach(b=>b.classList.remove("on"));
     document.getElementById("search-panel").style.display="none";
     document.getElementById("legend").style.display="none";
     if(stopsLayer)map.removeLayer(stopsLayer);
+    if(tab==="lin")Object.values(routeLayers).forEach(l=>{if(map.hasLayer(l))map.removeLayer(l)});
     closeStopDash();
     return;
   }
@@ -821,6 +826,8 @@ function setBusTab(tab){
     document.getElementById("legend").style.display="block";
     if(stopsLayer)map.removeLayer(stopsLayer);
     closeStopDash();
+    // Restaurar rutas que el usuario tenía visibles
+    Object.entries(routeLayers).forEach(([id,l])=>{if(!hiddenLines.has(parseInt(id)))l.addTo(map)});
   }
 }
 
