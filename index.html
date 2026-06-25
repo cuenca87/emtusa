@@ -284,7 +284,8 @@ async function apiFetch(p){
   const r=await fetch(`${API}/${p}`,{headers:{"Authorization":`Bearer ${TOKEN}`}});
   if(!r.ok)throw new Error(r.status);
   const buf=await r.arrayBuffer();
-  const txt=new TextDecoder("iso-8859-1").decode(buf);
+  const utf8=new TextDecoder("utf-8",{fatal:false}).decode(buf);
+  const txt=utf8.includes(" ")?new TextDecoder("iso-8859-1").decode(buf):utf8;
   return JSON.parse(txt);
 }
 
