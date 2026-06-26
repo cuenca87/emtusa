@@ -62,6 +62,13 @@ body{font-family:-apple-system,sans-serif}
 .stop-label{background:rgba(21,101,192,.9)!important;border:none!important;color:#fff!important;font-size:10px!important;font-weight:600!important;padding:2px 6px!important;border-radius:4px!important}
 .stop-label::before{border-right-color:rgba(21,101,192,.9)!important}
 .bici-icon{width:24px;height:24px;border-radius:50%;text-align:center;line-height:24px;font-size:11px;font-weight:800;color:#fff;box-shadow:0 2px 4px rgba(0,0,0,.3);border:2px solid #fff}
+.playa-icon{width:30px;height:30px;border-radius:50%;text-align:center;line-height:28px;font-size:14px;box-shadow:0 2px 6px rgba(0,0,0,.4);border:2px solid #fff}
+#mar-panel{position:fixed;bottom:10px;right:10px;z-index:999;background:rgba(0,0,0,.85);color:#fff;padding:14px 18px;border-radius:12px;font-size:13px;max-width:320px;width:calc(100vw - 20px);backdrop-filter:blur(10px);display:none}
+#mar-panel h3{font-size:15px;color:#38bdf8;margin:0 0 10px}
+.mar-row{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+.mar-row:last-of-type{border:none}
+.mar-label{color:#94a3b8}
+.mar-val{font-weight:600;text-align:right}
 .taxi-icon{width:28px;height:28px;border-radius:8px;text-align:center;line-height:28px;font-size:15px;box-shadow:0 2px 6px rgba(0,0,0,.4);background:#f59e0b;cursor:pointer}
 #taxi-panel{position:fixed;bottom:10px;right:10px;z-index:999;background:rgba(0,0,0,.85);color:#fff;padding:10px 14px;border-radius:12px;font-size:11px;max-width:260px;backdrop-filter:blur(10px);display:none}
 #taxi-panel h3{font-size:13px;color:#f59e0b;margin:0 0 8px}
@@ -126,6 +133,7 @@ body{font-family:-apple-system,sans-serif}
   <button class="mode-btn" id="mode-taxi" onclick="setMode('taxi')">Taxi</button>
   <button class="mode-btn" id="mode-aire" onclick="setMode('aire')">Aire</button>
   <button class="mode-btn" id="mode-meteo" onclick="setMode('meteo')">Tiempo</button>
+  <button class="mode-btn" id="mode-playas" onclick="setMode('playas')">Playas</button>
   <button class="mode-btn" id="mode-compare" onclick="toggleCompare()" style="background:rgba(0,0,0,.5)">Comparar</button>
 </div>
 <div id="compare-bar" style="display:none">
@@ -140,6 +148,11 @@ body{font-family:-apple-system,sans-serif}
 <div id="aire-panel">
   <h3>Calidad del Aire</h3>
   <div id="aire-stops"></div>
+</div>
+<div id="mar-panel">
+  <h3>🌊 Mar Cantábrico</h3>
+  <div id="mar-content"><span style="color:#94a3b8">Cargando...</span></div>
+  <div style="margin-top:8px;text-align:right"><a href="https://datoasturias.com/mar-cantabrico" target="_blank" style="color:#38bdf8;font-size:10px">datoasturias.com →</a></div>
 </div>
 <div id="taxi-panel">
   <h3>Teléfonos Taxi Gijón</h3>
@@ -239,6 +252,7 @@ function cleanAllLayers(){
   if(taxiLayer&&map.hasLayer(taxiLayer))map.removeLayer(taxiLayer);
   if(aireLayer&&map.hasLayer(aireLayer))map.removeLayer(aireLayer);
   if(meteoLayer&&map.hasLayer(meteoLayer))map.removeLayer(meteoLayer);
+  if(playasLayer&&map.hasLayer(playasLayer))map.removeLayer(playasLayer);
   if(stopsLayer&&map.hasLayer(stopsLayer))map.removeLayer(stopsLayer);
   nearbyMarkers.clearLayers();closeStopDash();
   document.getElementById("bus-tabs").style.display="none";
@@ -246,6 +260,7 @@ function cleanAllLayers(){
   document.getElementById("search-panel").style.display="none";
   document.getElementById("taxi-panel").style.display="none";
   document.getElementById("aire-panel").style.display="none";
+  document.getElementById("mar-panel").style.display="none";
   if(biciTimer){clearInterval(biciTimer);biciTimer=null}
 }
 
@@ -670,6 +685,7 @@ async function loadAire(){
 const BICI_API="https://api.citybik.es/v2/networks/gijon";
 const BICI_DETAIL="https://api.allorigins.win/get?url="+encodeURIComponent("https://bici.gijon.es/api/client/entities/stations/");
 let biciLayer=null,biciTimer=null,currentMode="bus";
+let playasLayer=null;
 
 function setMode(mode){
   // Cerrar comparador si está activo
@@ -682,6 +698,7 @@ function setMode(mode){
   document.getElementById("mode-taxi").classList.toggle("on",mode==="taxi");
   document.getElementById("mode-aire").classList.toggle("on",mode==="aire");
   document.getElementById("mode-meteo").classList.toggle("on",mode==="meteo");
+  document.getElementById("mode-playas").classList.toggle("on",mode==="playas");
   document.getElementById("mode-compare").classList.remove("on");
 
   // Paneles
@@ -690,6 +707,7 @@ function setMode(mode){
   document.getElementById("search-panel").style.display="none";
   document.getElementById("taxi-panel").style.display=mode==="taxi"?"block":"none";
   document.getElementById("aire-panel").style.display=mode==="aire"?"block":"none";
+  document.getElementById("mar-panel").style.display=mode==="playas"?"block":"none";
   document.getElementById("compare-bar").style.display="none";
 
   // Limpiar capas
@@ -704,6 +722,7 @@ function setMode(mode){
   if(taxiLayer){if(mode==="taxi")taxiLayer.addTo(map);else map.removeLayer(taxiLayer)}
   if(aireLayer){if(mode==="aire")aireLayer.addTo(map);else map.removeLayer(aireLayer)}
   if(meteoLayer){if(mode==="meteo")meteoLayer.addTo(map);else map.removeLayer(meteoLayer)}
+  if(playasLayer){if(mode==="playas")playasLayer.addTo(map);else map.removeLayer(playasLayer)}
   if(nearbyMarkers&&mode!=="bus")nearbyMarkers.clearLayers();
 
   // Timer bici
@@ -712,6 +731,7 @@ function setMode(mode){
   else if(mode==="taxi")loadTaxi();
   else if(mode==="aire")loadAire();
   else if(mode==="meteo")loadMeteo();
+  else if(mode==="playas")loadPlayas();
   else if(mode==="bus")loadBuses();
 }
 
@@ -955,6 +975,102 @@ async function init(){
     document.getElementById("bus-tabs").style.display="block";
     setBusTab("par");
   }catch(e){showStatus("Error: "+e.message)}
+}
+
+// --- Playas ---
+const BANDERAS_URL="https://opendata.gijon.es/descargar.php?id=973&tipo=JSON";
+const MAR_DIRECT="https://datoasturias.com/api/dashboard.php?action=estado-mar";
+const MAREAS_DIRECT="https://datoasturias.com/api/dashboard.php?action=mareas";
+const MAR_URL="https://api.allorigins.win/get?url="+encodeURIComponent(MAR_DIRECT);
+const MAREAS_URL="https://api.allorigins.win/get?url="+encodeURIComponent(MAREAS_DIRECT);
+function degToCompass(deg){const d=["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSO","SO","OSO","O","ONO","NO","NNO"];return d[Math.round(deg/22.5)%16]}
+const PLAYAS_LOCS={
+  "arbeyal":        {lat:43.5448,lon:-5.6941,nombre:"Playa de L'Arbeyal"},
+  "escalera4":      {lat:43.5424,lon:-5.6592,nombre:"San Lorenzo — Escalera 4 (La Escalerona)"},
+  "escalera8":      {lat:43.5410,lon:-5.6545,nombre:"San Lorenzo — Escalera 8"},
+  "escalera12":     {lat:43.5405,lon:-5.6490,nombre:"San Lorenzo — Escalera 12"},
+  "vahones":        {lat:43.5451,lon:-5.6435,nombre:"Playa de Los Vahones"},
+  "rinconín":       {lat:43.5483,lon:-5.6393,nombre:"Playa del Rinconcín"},
+  "peñarrubia":     {lat:43.5501,lon:-5.6285,nombre:"Playa de Peñarrubia"},
+  "serín":          {lat:43.5497,lon:-5.6089,nombre:"Playa de Serín"},
+  "estaño":         {lat:43.5478,lon:-5.5977,nombre:"Playa del Estaño"}
+};
+
+function banderaColor(e){
+  const s=(e||"").toLowerCase();
+  if(s==="verde")return"#22c55e";
+  if(s==="amarilla")return"#f59e0b";
+  if(s==="roja")return"#ef4444";
+  return"#6b7280";
+}
+
+async function _fetchMarJson(directUrl, proxyUrl){
+  try{
+    const r=await fetch(directUrl);
+    if(r.ok)return await r.json();
+  }catch(e){}
+  try{
+    const r=await fetch(proxyUrl);
+    if(r.ok){const w=await r.json();return w.contents?JSON.parse(w.contents):null;}
+  }catch(e){}
+  return null;
+}
+
+async function loadPlayas(){
+  try{
+    showStatus("Cargando playas...");
+    const rBand=await fetch(BANDERAS_URL);
+    if(!rBand.ok)throw new Error("HTTP "+rBand.status);
+    const data=await rBand.json();
+    const banderas=data.banderas?.bandera?.[0]||{};
+    if(playasLayer)playasLayer.clearLayers();else playasLayer=L.layerGroup();
+    if(currentMode==="playas")playasLayer.addTo(map);
+    let verdes=0,amarillas=0,rojas=0,cerradas=0;
+    Object.entries(banderas).forEach(([key,estado])=>{
+      const loc=PLAYAS_LOCS[key];if(!loc)return;
+      const color=banderaColor(estado);
+      const cerrada=estado==="-----";
+      if(cerrada)cerradas++;
+      else if(estado.toLowerCase()==="verde")verdes++;
+      else if(estado.toLowerCase()==="amarilla")amarillas++;
+      else if(estado.toLowerCase()==="roja")rojas++;
+      const icon=L.divIcon({html:`<div class="playa-icon" style="background:${color}">🏖</div>`,className:"",iconSize:[30,30],iconAnchor:[15,15]});
+      L.marker([loc.lat,loc.lon],{icon}).addTo(playasLayer).bindPopup(
+        `<b>${loc.nombre}</b><br>`+
+        `Bandera: <b style="color:${color}">${cerrada?"Sin servicio":estado}</b><br><br>`+
+        `<a href="https://www.gijon.es/es/playas" target="_blank" style="color:#1565C0;font-size:11px;">Ver estado playas →</a>`
+      );
+    });
+    document.getElementById("info").textContent=`Playas · 🟢 ${verdes} verde · 🟡 ${amarillas} amarilla · 🔴 ${rojas} roja · ⚫ ${cerradas} cerradas`;
+    showStatus("");
+    // Datos del mar en segundo plano (no bloquea las banderas)
+    _loadMarPanel();
+  }catch(e){showStatus("");document.getElementById("info").textContent="Error playas: "+e.message}
+}
+
+async function _loadMarPanel(){
+  try{
+    const [marJson,mareasJson]=await Promise.all([
+      _fetchMarJson(MAR_DIRECT,MAR_URL),
+      _fetchMarJson(MAREAS_DIRECT,MAREAS_URL)
+    ]);
+    const port=marJson?.data?.ports?.gijon;
+    const mareaGijon=mareasJson?.data?.ports?.find(p=>p.id==="gijon");
+    let html="";
+    if(port){
+      html+=`<div class="mar-row"><span class="mar-label">🌡️ Temp. agua</span><span class="mar-val">${port.waterTempC}°C</span></div>`;
+      html+=`<div class="mar-row"><span class="mar-label">🌊 Oleaje</span><span class="mar-val">${port.waveHeightM}m · ${port.wavePeakPeriodS}s · ${degToCompass(port.waveDirectionDeg)}</span></div>`;
+      html+=`<div class="mar-row"><span class="mar-label">💨 Viento</span><span class="mar-val">${port.windSpeedKmh} km/h ${degToCompass(port.windDirectionDeg)}</span></div>`;
+      if(port.pressureHpa)html+=`<div class="mar-row"><span class="mar-label">🌀 Presión</span><span class="mar-val">${port.pressureHpa} hPa</span></div>`;
+    }
+    if(mareaGijon?.nextEvent){
+      const e=mareaGijon.nextEvent;
+      const lbl=e.tipo==="pleamar"?"↑ Pleamar":"↓ Bajamar";
+      html+=`<div class="mar-row"><span class="mar-label">${lbl}</span><span class="mar-val">${e.hora} · ${e.alturaM}m</span></div>`;
+    }
+    if(currentMode==="playas")
+      document.getElementById("mar-content").innerHTML=html||`<span style="color:#94a3b8">No disponible</span>`;
+  }catch(e){}
 }
 
 init();
