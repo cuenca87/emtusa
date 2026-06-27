@@ -116,6 +116,12 @@ body{font-family:-apple-system,sans-serif}
     <button class="tab-btn" id="tab-lin" onclick="setBusTab('lin')">Líneas</button>
   </div>
 </div>
+<div id="meteo-tabs" style="position:fixed;top:50px;left:10px;z-index:1001;display:none">
+  <div style="display:flex;gap:4px">
+    <button class="tab-btn" id="tab-meteo-tiempo" onclick="setMeteoTab('tiempo')">Tiempo</button>
+    <button class="tab-btn" id="tab-meteo-aire" onclick="setMeteoTab('aire')">Aire</button>
+  </div>
+</div>
 <div id="search-panel" style="display:none">
   <div id="search-bar">
     <input id="inp-search" type="text" placeholder="Buscar dirección en Gijón..." autocomplete="off">
@@ -131,8 +137,7 @@ body{font-family:-apple-system,sans-serif}
   <button class="mode-btn on" id="mode-bus" onclick="setMode('bus')">EMTUSA</button>
   <button class="mode-btn" id="mode-bici" onclick="setMode('bici')">Bici</button>
   <button class="mode-btn" id="mode-taxi" onclick="setMode('taxi')">Taxi</button>
-  <button class="mode-btn" id="mode-aire" onclick="setMode('aire')">Aire</button>
-  <button class="mode-btn" id="mode-meteo" onclick="setMode('meteo')">Tiempo</button>
+  <button class="mode-btn" id="mode-meteo" onclick="setMode('meteo')">Meteo</button>
   <button class="mode-btn" id="mode-playas" onclick="setMode('playas')">Playas</button>
   <button class="mode-btn" id="mode-compare" onclick="toggleCompare()" style="background:rgba(0,0,0,.5)">Comparar</button>
 </div>
@@ -251,11 +256,14 @@ function cleanAllLayers(){
   if(biciLayer&&map.hasLayer(biciLayer))map.removeLayer(biciLayer);
   if(taxiLayer&&map.hasLayer(taxiLayer))map.removeLayer(taxiLayer);
   if(aireLayer&&map.hasLayer(aireLayer))map.removeLayer(aireLayer);
+  if(aireTempLayer&&map.hasLayer(aireTempLayer))map.removeLayer(aireTempLayer);
   if(meteoLayer&&map.hasLayer(meteoLayer))map.removeLayer(meteoLayer);
+  if(aemetLayer&&map.hasLayer(aemetLayer))map.removeLayer(aemetLayer);
   if(playasLayer&&map.hasLayer(playasLayer))map.removeLayer(playasLayer);
   if(stopsLayer&&map.hasLayer(stopsLayer))map.removeLayer(stopsLayer);
   nearbyMarkers.clearLayers();closeStopDash();
   document.getElementById("bus-tabs").style.display="none";
+  document.getElementById("meteo-tabs").style.display="none";
   document.getElementById("legend").style.display="none";
   document.getElementById("search-panel").style.display="none";
   document.getElementById("taxi-panel").style.display="none";
@@ -267,7 +275,7 @@ function cleanAllLayers(){
 function toggleCompare(){
   if(!compareActive){
     cleanAllLayers();
-    ["mode-bus","mode-bici","mode-taxi","mode-aire","mode-meteo"].forEach(id=>document.getElementById(id).classList.remove("on"));
+    ["mode-bus","mode-bici","mode-taxi","mode-meteo"].forEach(id=>document.getElementById(id).classList.remove("on"));
   }
   compareActive=!compareActive;
   document.getElementById("mode-compare").classList.toggle("on",compareActive);
@@ -506,7 +514,7 @@ function loadTaxi(){
 const WU_KEY="e1f10a1e78da46f5b10a1e78da96f525";
 const WU_NEAR="https://api.weather.com/v3/location/near?geocode=43.5322,-5.6611&product=pws&format=json&apiKey="+WU_KEY;
 const WU_OBS="https://api.weather.com/v2/pws/observations/current?format=json&units=m&numericPrecision=decimal&apiKey="+WU_KEY+"&stationId=";
-let meteoLayer=null;
+let meteoLayer=null,aireTempLayer=null,aemetLayer=null;
 
 function tempColor(t){
   if(t==null)return"#888";
@@ -647,7 +655,7 @@ async function loadAire(){
     const latest=getLatestByStation(rows);
     const rain=getRainYesterday(rows);
     if(aireLayer)aireLayer.clearLayers();else aireLayer=L.layerGroup();
-    if(currentMode==="aire")aireLayer.addTo(map);
+    if(currentMode==="meteo"&&currentMeteoTab==="aire")aireLayer.addTo(map);
 
     rain.forEach(s=>{
       if(s.total<=0)return;
@@ -681,36 +689,115 @@ async function loadAire(){
   }catch(e){showStatus("");document.getElementById("info").textContent="Error aire: "+e.message}
 }
 
+// --- Estaciones AEMET via Open-Meteo (sin API key) ---
+const AEMET_EST=[
+  {id:"1208H",name:"Gijón-Musel",lat:43.5597,lon:-5.7008,alt:5},
+  {id:"1207U",name:"Gijón-Campus",lat:43.5231,lon:-5.6211,alt:26}
+];
+const OM_BASE="https://api.open-meteo.com/v1/forecast?wind_speed_unit=kmh&timezone=Europe/Madrid&current=temperature_2m,relative_humidity_2m,apparent_temperature,dewpoint_2m,wind_speed_10m,wind_direction_10m,windgusts_10m,surface_pressure,precipitation";
+
+async function loadAemet(){
+  try{
+    const results=await Promise.all(AEMET_EST.map(async est=>{
+      try{
+        const r=await fetch(`${OM_BASE}&latitude=${est.lat}&longitude=${est.lon}`);
+        if(!r.ok)return null;
+        const d=await r.json();
+        const c=d.current;if(!c)return null;
+        const windDir=c.wind_direction_10m;
+        const windArrow=windDir!=null?["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSO","SO","OSO","O","ONO","NO","NNO"][Math.round(windDir/22.5)%16]:"--";
+        return{...est,
+          temp:c.temperature_2m,heatIndex:c.apparent_temperature,dewpt:c.dewpoint_2m,
+          humidity:c.relative_humidity_2m,wind:c.wind_speed_10m,gust:c.windgusts_10m,
+          winddir:windDir,windArrow,pressure:c.surface_pressure,precip:c.precipitation||0,
+          time:c.time?c.time.split("T")[1].slice(0,5):""};
+      }catch{return null}
+    }));
+    const obs=results.filter(Boolean);
+    if(!obs.length)return;
+    if(aemetLayer)aemetLayer.clearLayers();else aemetLayer=L.layerGroup();
+    if(currentMode==="meteo"&&currentMeteoTab==="tiempo")aemetLayer.addTo(map);
+    obs.forEach(s=>{
+      const col=tempColor(s.temp);
+      const icon=L.divIcon({html:`<div class="aire-icon" style="background:${col}">${s.temp!=null?Math.round(s.temp):"--"}°</div>`,className:"",iconSize:[36,36],iconAnchor:[18,18]});
+      L.marker([s.lat,s.lon],{icon}).addTo(aemetLayer).bindPopup(
+        `<b>${s.name}</b><br><small>AEMET ${s.id} · ${s.time} · ${s.alt}m</small><br>`+
+        `Temp: <b>${s.temp!=null?s.temp.toFixed(1):"--"}°C</b> · Sensación: ${s.heatIndex!=null?s.heatIndex.toFixed(1):"--"}°C<br>`+
+        `Humedad: ${s.humidity!=null?Math.round(s.humidity):"--"}% · Rocío: ${s.dewpt!=null?s.dewpt.toFixed(1):"--"}°C<br>`+
+        `Viento: ${s.wind!=null?s.wind.toFixed(0):"--"} km/h (racha ${s.gust!=null?s.gust.toFixed(0):"--"}) · ${s.windArrow}<br>`+
+        `Presión: ${s.pressure!=null?s.pressure.toFixed(1):"--"} hPa · Precip: ${s.precip} mm`
+      );
+    });
+  }catch(e){console.error("AEMET load error:",e)}
+}
+
+async function loadAireTemp(){
+  try{
+    showStatus("Cargando temperaturas...");
+    const r=await fetch(AIRE_URL);if(!r.ok)throw new Error(r.status);
+    const rows=parseAireCSV(await r.text());
+    const latest=getLatestByStation(rows);
+    if(aireTempLayer)aireTempLayer.clearLayers();else aireTempLayer=L.layerGroup();
+    if(currentMode==="meteo"&&currentMeteoTab==="tiempo")aireTempLayer.addTo(map);
+    latest.forEach(s=>{
+      if(isNaN(s.TMP))return;
+      const col=tempColor(s.TMP);
+      const icon=L.divIcon({html:`<div class="aire-icon" style="background:${col}">${Math.round(s.TMP)}°</div>`,className:"",iconSize:[36,36],iconAnchor:[18,18]});
+      L.marker([s.lat,s.lon],{icon}).addTo(aireTempLayer).bindPopup(
+        `<b>${s.name}</b><br><small>${s.fecha} · ${s.hora}:00h</small><br>`+
+        `Temp: <b>${v(s.TMP)}°C</b> · Humedad: ${v(s.HR)}%<br>`+
+        `Viento: ${v(s.vv)} m/s · Presión: ${v(s.PRB)} hPa`
+      );
+    });
+    showStatus("");
+  }catch(e){showStatus("");}
+}
+
+function setMeteoTab(tab){
+  if(currentMeteoTab===tab)return;
+  currentMeteoTab=tab;
+  document.getElementById("tab-meteo-tiempo").classList.toggle("on",tab==="tiempo");
+  document.getElementById("tab-meteo-aire").classList.toggle("on",tab==="aire");
+  if(aireLayer&&map.hasLayer(aireLayer))map.removeLayer(aireLayer);
+  if(aireTempLayer&&map.hasLayer(aireTempLayer))map.removeLayer(aireTempLayer);
+  if(meteoLayer&&map.hasLayer(meteoLayer))map.removeLayer(meteoLayer);
+  if(aemetLayer&&map.hasLayer(aemetLayer))map.removeLayer(aemetLayer);
+  document.getElementById("aire-panel").style.display=tab==="aire"?"block":"none";
+  if(tab==="tiempo"){
+    loadMeteo();
+    loadAireTemp();
+    loadAemet();
+  }else{
+    loadAire();
+  }
+}
+
 // --- Gijón Bici ---
 const BICI_API="https://api.citybik.es/v2/networks/gijon";
 const BICI_DETAIL="https://api.allorigins.win/get?url="+encodeURIComponent("https://bici.gijon.es/api/client/entities/stations/");
-let biciLayer=null,biciTimer=null,currentMode="bus";
+let biciLayer=null,biciTimer=null,currentMode="bus",currentMeteoTab=null;
 let playasLayer=null;
 
 function setMode(mode){
-  // Cerrar comparador si está activo
   if(compareActive)toggleCompare();
-  // Limpiar marcador callejero
 
   currentMode=mode;
   document.getElementById("mode-bus").classList.toggle("on",mode==="bus");
   document.getElementById("mode-bici").classList.toggle("on",mode==="bici");
   document.getElementById("mode-taxi").classList.toggle("on",mode==="taxi");
-  document.getElementById("mode-aire").classList.toggle("on",mode==="aire");
   document.getElementById("mode-meteo").classList.toggle("on",mode==="meteo");
   document.getElementById("mode-playas").classList.toggle("on",mode==="playas");
   document.getElementById("mode-compare").classList.remove("on");
 
-  // Paneles
   document.getElementById("bus-tabs").style.display=mode==="bus"?"block":"none";
+  document.getElementById("meteo-tabs").style.display=mode==="meteo"?"block":"none";
   document.getElementById("legend").style.display="none";
   document.getElementById("search-panel").style.display="none";
   document.getElementById("taxi-panel").style.display=mode==="taxi"?"block":"none";
-  document.getElementById("aire-panel").style.display=mode==="aire"?"block":"none";
+  document.getElementById("aire-panel").style.display="none";
   document.getElementById("mar-panel").style.display=mode==="playas"?"block":"none";
   document.getElementById("compare-bar").style.display="none";
 
-  // Limpiar capas
   if(mode!=="bus"){closeStopDash();if(stopsLayer)map.removeLayer(stopsLayer);activeBusTab=null;document.querySelectorAll("#bus-tabs .tab-btn").forEach(b=>b.classList.remove("on"))}
   else{setBusTab("par")}
   if(busLayer){if(mode==="bus")busLayer.addTo(map);else map.removeLayer(busLayer)}
@@ -720,17 +807,17 @@ function setMode(mode){
   });
   if(biciLayer){if(mode==="bici")biciLayer.addTo(map);else map.removeLayer(biciLayer)}
   if(taxiLayer){if(mode==="taxi")taxiLayer.addTo(map);else map.removeLayer(taxiLayer)}
-  if(aireLayer){if(mode==="aire")aireLayer.addTo(map);else map.removeLayer(aireLayer)}
-  if(meteoLayer){if(mode==="meteo")meteoLayer.addTo(map);else map.removeLayer(meteoLayer)}
+  if(aireLayer&&map.hasLayer(aireLayer))map.removeLayer(aireLayer);
+  if(aireTempLayer&&map.hasLayer(aireTempLayer))map.removeLayer(aireTempLayer);
+  if(meteoLayer&&map.hasLayer(meteoLayer))map.removeLayer(meteoLayer);
+  if(aemetLayer&&map.hasLayer(aemetLayer))map.removeLayer(aemetLayer);
   if(playasLayer){if(mode==="playas")playasLayer.addTo(map);else map.removeLayer(playasLayer)}
   if(nearbyMarkers&&mode!=="bus")nearbyMarkers.clearLayers();
 
-  // Timer bici
   if(biciTimer&&mode!=="bici"){clearInterval(biciTimer);biciTimer=null}
   if(mode==="bici"){loadBici();if(!biciTimer)biciTimer=setInterval(loadBici,30000)}
   else if(mode==="taxi")loadTaxi();
-  else if(mode==="aire")loadAire();
-  else if(mode==="meteo")loadMeteo();
+  else if(mode==="meteo"){currentMeteoTab=null;setMeteoTab('tiempo')}
   else if(mode==="playas")loadPlayas();
   else if(mode==="bus")loadBuses();
 }
